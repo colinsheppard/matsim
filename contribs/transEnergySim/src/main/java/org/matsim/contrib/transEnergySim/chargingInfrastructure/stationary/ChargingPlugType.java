@@ -20,9 +20,9 @@ public interface ChargingPlugType {
 	boolean isV1GCapable();
 	boolean isV2GCapable();
 	String getPlugTypeName();
+	int getNominalLevel();
 	
-}
-=======
+}=======
 >>>>>>> updates to interfaces to match latest BEAM framework changes
 	boolean isV1GCapable();
 	boolean isV2GCapable();
