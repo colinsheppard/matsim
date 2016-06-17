@@ -38,6 +38,11 @@ public class InductivelyChargableBatteryElectricVehicle extends BatteryElectricV
 		this.socInJoules=batteryCapacityInJoules;
 	}
 
+	@Override
+	public boolean isBEV() {
+		return true;
+	}
+
  
 	 
 }

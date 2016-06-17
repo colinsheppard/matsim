@@ -19,4 +19,9 @@ public class PHEV extends AbstractHybridElectricVehicle {
 		
 	}
 
+	@Override
+	public boolean isBEV() {
+		return false;
+	}
+
 }

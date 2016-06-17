@@ -42,4 +42,9 @@ public class BatteryElectricVehicleImpl extends BatteryElectricVehicle {
 	
 	}
 
+	@Override
+	public boolean isBEV() {
+		return true;
+	}
+
 }

@@ -19,6 +19,8 @@
 
 package org.matsim.contrib.transEnergySim.vehicles.api;
 
+import java.util.HashSet;
+
 import org.matsim.api.core.v01.Id;
 import org.matsim.contrib.parking.lib.DebugLib;
 import org.matsim.contrib.parking.lib.GeneralLib;
@@ -48,7 +50,12 @@ public abstract class VehicleWithBattery extends AbstractVehicle {
 
 	protected EnergyConsumptionModel electricDriveEnergyConsumptionModel;
 	protected Id<Vehicle> vehicleId;
-	private boolean isBEV = true; //TODO set this based on vehicle type
+	
+	protected double maxLevel2ChargingPowerInKW, maxLevel3ChargingPowerInKW, maxDischargingRateInKW;
+	protected HashSet<ChargingPlugType> compatiblePlugTypes;
+
+	private String vehicleTypeName;
+	private HashSet<ChargingPlugType> compatiblePlutTypes;
 
 	public double getRequiredEnergyInJoules() {
 		double requiredEnergyInJoules = getUsableBatteryCapacityInJoules() - socInJoules;
@@ -112,9 +119,9 @@ public abstract class VehicleWithBattery extends AbstractVehicle {
 			case 1:
 				return 1.5;
 			case 2:
-				return 6.7;
+				return maxLevel2ChargingPowerInKW;
 			case 3:
-				return 50;
+				return maxLevel3ChargingPowerInKW;
 		}
 		return 0.0;
 	}
@@ -122,8 +129,28 @@ public abstract class VehicleWithBattery extends AbstractVehicle {
 	public double getRemainingRangeInMeters() {
 		return this.socInJoules / this.electricDriveEnergyConsumptionModel.getEnergyConsumptionRateInJoulesPerMeter();
 	}
-
-	public Double isBEV() {
-		return this.isBEV ? 1.0 : 0.0;
+	public double getMaxLevel2ChargingPowerInKW() {
+		return maxLevel2ChargingPowerInKW;
 	}
+	public double getMaxLevel3ChargingPowerInKW() {
+		return maxLevel3ChargingPowerInKW;
+	}
+	public double getMaxDischargingRateInKW() {
+		return maxDischargingRateInKW;
+	}
+	public HashSet<ChargingPlugType> getCompatiblePlugTypes() {
+		return compatiblePlugTypes;
+	}
+	public String getVehicleTypeName() {
+		return vehicleTypeName;
+	}
+	
+	public void setChargingFields(String vehicleTypeName, double maxDischargingRateInKW, double maxLevel2ChargingPowerInKW, double maxLevel3ChargingPowerInKW, HashSet<ChargingPlugType> compatiblePlutTypes) {
+		this.vehicleTypeName = vehicleTypeName;
+		this.maxDischargingRateInKW = maxDischargingRateInKW;
+		this.maxLevel2ChargingPowerInKW = maxLevel2ChargingPowerInKW;
+		this.maxLevel3ChargingPowerInKW = maxLevel3ChargingPowerInKW;
+		this.compatiblePlutTypes = compatiblePlutTypes;
+	}
+	public abstract boolean isBEV();
 }
