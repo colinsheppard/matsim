@@ -27,8 +27,10 @@ import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.api.core.v01.population.Population;
 import org.matsim.contrib.socnetsim.jointtrips.population.JointActingTypes;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.population.MatsimPopulationReader;
-import org.matsim.core.population.PopulationImpl;
+import org.matsim.core.population.algorithms.PersonAlgorithm;
+import org.matsim.core.population.io.PopulationReader;
+import org.matsim.core.population.io.StreamingPopulationReader;
+import org.matsim.core.population.io.StreamingUtils;
 import org.matsim.core.router.CompositeStageActivityTypes;
 import org.matsim.core.router.MainModeIdentifier;
 import org.matsim.core.router.MainModeIdentifierImpl;
@@ -40,7 +42,6 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.io.IOUtils;
 import org.matsim.core.utils.io.UncheckedIOException;
 import org.matsim.core.utils.misc.Counter;
-import org.matsim.population.algorithms.PersonAlgorithm;
 import org.matsim.pt.PtConstants;
 import playground.ivt.utils.Filter;
 
@@ -177,10 +178,12 @@ public class LocatedTripsWriter {
 		final Collection<TripInfo> infos = new ArrayList<TripInfo>();
 
 		final Scenario scenario = ScenarioUtils.createScenario( ConfigUtils.createConfig() );
-		((PopulationImpl) scenario.getPopulation()).setIsStreaming( true );
-		((PopulationImpl) scenario.getPopulation()).addAlgorithm( new InfoFiller( filter , infos ) );
+//		final Population reader = (Population) scenario.getPopulation();
+		StreamingPopulationReader reader = new StreamingPopulationReader( scenario ) ;
+		StreamingUtils.setIsStreaming(reader, true);
+		reader.addAlgorithm(new InfoFiller( filter , infos ));
 
-		new MatsimPopulationReader( scenario ).parse( inPopFile );
+		new PopulationReader( scenario ).readFile( inPopFile );
 		return infos;
 	}
 

@@ -7,8 +7,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.matsim.api.core.v01.events.Event;
-import org.matsim.contrib.parking.PC2.simulation.ParkingArrivalEvent;
-import org.matsim.contrib.parking.PC2.simulation.ParkingDepartureEvent;
+import org.matsim.contrib.parking.parkingchoice.PC2.simulation.ParkingArrivalEvent;
+import org.matsim.contrib.parking.parkingchoice.PC2.simulation.ParkingDepartureEvent;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.events.EventsReaderXMLv1;
 import org.matsim.core.events.EventsUtils;
@@ -76,7 +76,7 @@ public class Occupancy implements BasicEventHandler {
 		events.addHandler(occ); 
 
 		EventsReaderXMLv1 reader = new EventsReaderXMLv1(events);
-		reader.parse(args[0]);
+		reader.readFile(args[0]);
 		
 		int[] count = occ.getCounts();
 		

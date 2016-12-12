@@ -36,14 +36,19 @@ import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.population.MatsimPopulationReader;
+import org.matsim.core.population.io.PopulationReader;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.io.IOUtils;
 import org.matsim.core.utils.misc.Counter;
+import org.matsim.households.Household;
 import org.matsim.households.HouseholdsReaderV10;
+import org.matsim.households.Income;
 import org.matsim.utils.objectattributes.ObjectAttributesXmlReader;
 
+import playground.southafrica.population.capeTownTravelSurvey.PersonEnums;
+import playground.southafrica.population.capeTownTravelSurvey.PersonEnums.AgeGroup;
+import playground.southafrica.population.capeTownTravelSurvey.PersonEnums.Employment;
 import playground.southafrica.population.census2011.attributeConverters.CoordConverter;
 import playground.southafrica.utilities.Header;
 
@@ -69,15 +74,15 @@ public class WalkDistanceEstimator {
 		
 		/* Parse the entire population. */
 		Scenario sc = ScenarioUtils.createScenario(ConfigUtils.createConfig());
-		new HouseholdsReaderV10(sc.getHouseholds()).parse(householdFile);
-		new MatsimPopulationReader(sc).parse(populationFile);
+		new HouseholdsReaderV10(sc.getHouseholds()).readFile(householdFile);
+		new PopulationReader(sc).readFile(populationFile);
 		
 		/* Parse the attributes. */
 		ObjectAttributesXmlReader hhaReader = new ObjectAttributesXmlReader(sc.getHouseholds().getHouseholdAttributes());
 		hhaReader.putAttributeConverter(Coord.class, new CoordConverter());
-		hhaReader.parse(householdAttributesFile);
+		hhaReader.readFile(householdAttributesFile);
 		
-		new ObjectAttributesXmlReader(sc.getPopulation().getPersonAttributes()).parse(populationAttributesFile);
+		new ObjectAttributesXmlReader(sc.getPopulation().getPersonAttributes()).readFile(populationAttributesFile);
 		
 		WalkDistanceEstimator.extractWalkDistances(sc, output);
 		
@@ -96,12 +101,38 @@ public class WalkDistanceEstimator {
 				for(int i = 1; i < plan.getPlanElements().size()-1; i+=2 ){
 					Leg leg = (Leg)plan.getPlanElements().get(i);
 					if(leg.getMode().equalsIgnoreCase("walk")){
-						Coord a = ((Activity)plan.getPlanElements().get(i-1)).getCoord();
-						Coord b = ((Activity)plan.getPlanElements().get(i+1)).getCoord();
+						/* Calculate the distance. */
+						Activity actA = ((Activity)plan.getPlanElements().get(i-1));
+						Coord a = actA.getCoord();
+						Activity actB = ((Activity)plan.getPlanElements().get(i+1));
+						Coord b = actB.getCoord();
 						double dist = CoordUtils.calcEuclideanDistance(a, b);
 						
+						/* Get the household attributes. */
+						Id<Household> hhid = Id.create(pid.toString().substring(0, pid.toString().indexOf("_")), Household.class);
+						Income income = sc.getHouseholds().getHouseholds().get(hhid).getIncome();
+						double incomeValue = 0.0;
+						if(income != null){
+							incomeValue = income.getIncome();
+						}
+						
+						/* Get employment. */
+						String employmentDescription = sc.getPopulation().getPersonAttributes().getAttribute(pid.toString(), "employment").toString();
+						Employment employment = PersonEnums.Employment.parseFromDescription(employmentDescription);
+						
+						
+						/* Get age. */
+						String yearOfBirth = sc.getPopulation().getPersonAttributes().getAttribute(pid.toString(), "yearOfBirth").toString();
+						AgeGroup age = PersonEnums.AgeGroup.parseFromBirthYear(yearOfBirth);
+						
 						/* Add all the wanted attributes. */
-						list.add(String.format("%.0f", dist));
+						list.add(String.format("%.0f,%.0f,%s,%s,%s,%s", 
+								dist, 
+								incomeValue, 
+								age.getDescription(), 
+								employment.toString(),
+								actA.getType(),
+								actB.getType()));
 					}
 				}
 			}
@@ -112,6 +143,8 @@ public class WalkDistanceEstimator {
 		Counter counter = new Counter("  legs # ");
 		BufferedWriter bw = IOUtils.getBufferedWriter(filename);
 		try{
+			bw.write("dist,hhInc,age,employment,actOrigin,actDest");
+			bw.newLine();
 			for(String s : list){
 				bw.write(s);
 				bw.newLine();

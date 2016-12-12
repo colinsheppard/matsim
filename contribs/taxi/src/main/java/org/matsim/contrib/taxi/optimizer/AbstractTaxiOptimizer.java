@@ -60,7 +60,7 @@ public abstract class AbstractTaxiOptimizer
     @Override
     public void notifyMobsimBeforeSimStep(@SuppressWarnings("rawtypes") MobsimBeforeSimStepEvent e)
     {
-        if (requiresReoptimization && (e.getSimulationTime() % reoptimizationTimeStep == 0)) {
+        if (requiresReoptimization && isNewDecisionEpoch(e, reoptimizationTimeStep)) {
             if (doUnscheduleAwaitingRequests) {
                 unscheduleAwaitingRequests();
             }
@@ -83,6 +83,13 @@ public abstract class AbstractTaxiOptimizer
 
             requiresReoptimization = false;
         }
+    }
+
+
+    protected boolean isNewDecisionEpoch(@SuppressWarnings("rawtypes") MobsimBeforeSimStepEvent e,
+            int epochLength)
+    {
+        return e.getSimulationTime() % epochLength == 0;
     }
 
 

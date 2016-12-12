@@ -7,26 +7,31 @@ import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.contrib.accessibility.AccessibilityCalculator;
 import org.matsim.contrib.accessibility.AccessibilityConfigGroup;
 import org.matsim.contrib.accessibility.CSVWriter;
 import org.matsim.contrib.accessibility.FacilityTypes;
-import org.matsim.contrib.accessibility.GridBasedAccessibilityControlerListenerV3;
+import org.matsim.contrib.accessibility.GridBasedAccessibilityShutdownListenerV3;
 import org.matsim.contrib.accessibility.Labels;
 import org.matsim.contrib.accessibility.Modes4Accessibility;
-import org.matsim.contrib.accessibility.utils.AccessibilityRunUtils;
+import org.matsim.contrib.accessibility.gis.GridUtils;
+import org.matsim.contrib.accessibility.utils.AccessibilityUtils;
 import org.matsim.contrib.matrixbasedptrouter.MatrixBasedPtRouterConfigGroup;
+import org.matsim.contrib.matrixbasedptrouter.utils.BoundingBox;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.OutputDirectoryHierarchy.OverwriteFileSetting;
 import org.matsim.core.controler.listener.ControlerListener;
+import org.matsim.core.gbl.Gbl;
 import org.matsim.core.router.costcalculators.TravelDisutilityFactory;
 import org.matsim.core.router.util.TravelTime;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.facilities.ActivityFacilities;
 import org.matsim.facilities.ActivityFacilitiesFactory;
 import org.matsim.facilities.ActivityFacilitiesFactoryImpl;
+import org.matsim.facilities.ActivityFacilitiesImpl;
 import org.matsim.facilities.ActivityFacility;
 import org.matsim.facilities.ActivityOption;
 
@@ -76,21 +81,21 @@ public class AccessibilityBasedLocationOptimizer {
 
 		// for optimization
 		ActivityFacilities analysisPoints =
-				AccessibilityRunUtils.createMeasuringPointsFromNetwork(scenario.getNetwork(), cellSize);
+				AccessibilityUtils.createMeasuringPointsFromNetworkBounds(scenario.getNetwork(), cellSize);
 
 		ActivityFacilitiesFactory activityFacilityFactory = new ActivityFacilitiesFactoryImpl();
 
 
 		// create listener for various analysis/measuring points
 		int i = 1;
-		final Map<Id<ActivityFacility>, GridBasedAccessibilityControlerListenerV3> listenerMap =
-				new HashMap<Id<ActivityFacility>, GridBasedAccessibilityControlerListenerV3>();
+		final Map<Id<ActivityFacility>, GridBasedAccessibilityShutdownListenerV3> listenerMap =
+				new HashMap<Id<ActivityFacility>, GridBasedAccessibilityShutdownListenerV3>();
 		for (final Id<ActivityFacility> measuringPointId : analysisPoints.getFacilities().keySet()) {
 			log.info("i = " + i + " -- i % searchInterval = " + i % searchInterval);
 
 			if ((i % searchInterval) == 0) { // if e.g. searchInterval = 7, only look at 7th measurePoint
 
-				final ActivityFacilities activityFacilites = AccessibilityRunUtils.collectActivityFacilitiesWithOptionOfType(scenario, actType);
+				final ActivityFacilities activityFacilites = AccessibilityUtils.collectActivityFacilitiesWithOptionOfType(scenario, actType);
 
 				ActivityOption activityOption = activityFacilityFactory.createActivityOption(actType);
 
@@ -112,23 +117,25 @@ public class AccessibilityBasedLocationOptimizer {
 
 							@Override
 							public ControlerListener get() {
-								GridBasedAccessibilityControlerListenerV3 listener = new GridBasedAccessibilityControlerListenerV3(activityFacilites, null, config, scenario, travelTimes, travelDisutilityFactories);
-//				log.warn("listener = " + listener);
+								BoundingBox bb = BoundingBox.createBoundingBox(scenario.getNetwork());
+								ActivityFacilitiesImpl measuringPoints = GridUtils.createGridLayerByGridSizeByBoundingBoxV2(bb.getXMin(), bb.getYMin(), bb.getXMax(), bb.getYMax(), cellSize);
+								AccessibilityCalculator accessibilityCalculator = new AccessibilityCalculator(scenario, measuringPoints);
+								GridBasedAccessibilityShutdownListenerV3 listener = new GridBasedAccessibilityShutdownListenerV3(accessibilityCalculator, activityFacilites, null, scenario, bb.getXMin(), bb.getYMin(), bb.getXMax(),bb.getYMax(), cellSize);
+								
+								if ( true ) {
+									throw new RuntimeException("the following needs to be replaced with more flexible syntax. kai, nov'16") ;
+								}
 
-								listener.setComputingAccessibilityForMode(Modes4Accessibility.freeSpeed, true);
-								//				listener.setComputingAccessibilityForMode(Modes4Accessibility.car, true);
-								listener.setComputingAccessibilityForMode(Modes4Accessibility.walk, true);
-								listener.setComputingAccessibilityForMode(Modes4Accessibility.bike, true);
-								//				listener.setComputingAccessibilityForMode(Modes4Accessibility.pt, true);
+//								accessibilityCalculator.setComputingAccessibilityForMode(Modes4Accessibility.freespeed, true);
+//								//				listener.setComputingAccessibilityForMode(Modes4Accessibility.car, true);
+//								accessibilityCalculator.setComputingAccessibilityForMode(Modes4Accessibility.walk, true);
+//								accessibilityCalculator.setComputingAccessibilityForMode(Modes4Accessibility.bike, true);
+//								//				listener.setComputingAccessibilityForMode(Modes4Accessibility.pt, true);
 
 								//				listener.addAdditionalFacilityData(homes) ;
-								listener.generateGridsAndMeasuringPointsByNetwork(cellSize);
 
 								listener.writeToSubdirectoryWithName(addedFacilityId.toString());
 
-								listener.setUrbansimMode(false); // avoid writing some (eventually: all) files that related to matsim4urbansim
-
-								//
 								listener.setCalculateAggregateValues(true);
 								listenerMap.put(measuringPointId, listener);
 								return listener;
@@ -146,20 +153,20 @@ public class AccessibilityBasedLocationOptimizer {
 
 
 		// collect sums and gini coefficients for different analysis/measuring points
-		Map<Id<ActivityFacility>, Map<Modes4Accessibility, Double>> mapOfAccessibilitySumMaps = 
-				new HashMap<Id<ActivityFacility>, Map<Modes4Accessibility, Double>>();
-		Map<Id<ActivityFacility>, Map<Modes4Accessibility, Double>> mapOfAccessibilityGiniCoefficientMaps = 
-				new HashMap<Id<ActivityFacility>, Map<Modes4Accessibility, Double>>();
+		Map<Id<ActivityFacility>, Map<String, Double>> mapOfAccessibilitySumMaps = 
+				new HashMap<>();
+		Map<Id<ActivityFacility>, Map<String, Double>> mapOfAccessibilityGiniCoefficientMaps = 
+				new HashMap<>();
 
 		for (Id<ActivityFacility> measuringPointId : listenerMap.keySet()) {
 //			log.warn("listenerMap = " + listenerMap);
-			GridBasedAccessibilityControlerListenerV3 listener = listenerMap.get(measuringPointId);
+			GridBasedAccessibilityShutdownListenerV3 listener = listenerMap.get(measuringPointId);
 
 //			log.warn("listener = " + listener.toString());
-			Map<Modes4Accessibility, Double> accessibilitySums = listener.getAccessibilitySums();
+			Map<String, Double> accessibilitySums = listener.getAccessibilitySums();
 			mapOfAccessibilitySumMaps.put(measuringPointId, accessibilitySums);			
 
-			Map<Modes4Accessibility, Double> accessibilityGiniCoefficients = listener.getAccessibilityGiniCoefficients();
+			Map<String, Double> accessibilityGiniCoefficients = listener.getAccessibilityGiniCoefficients();
 			mapOfAccessibilityGiniCoefficientMaps.put(measuringPointId, accessibilityGiniCoefficients);
 		}
 
@@ -173,7 +180,7 @@ public class AccessibilityBasedLocationOptimizer {
 	 * This writes data
 	 */
 	private static void writePlottingData(String outputDirectory, ActivityFacilities analysisPoints,
-			Map<Id<ActivityFacility>, Map<Modes4Accessibility, Double>> map, String fileName) {
+			Map<Id<ActivityFacility>, Map<String, Double>> map, String fileName) {
 		log.info("Writing plotting data for other analyis into " + outputDirectory + " ...");
 
 
@@ -181,14 +188,9 @@ public class AccessibilityBasedLocationOptimizer {
 
 		writer.writeField(Labels.X_COORDINATE);
 		writer.writeField(Labels.Y_COORDINATE);
-		writer.writeField(Labels.ACCESSIBILITY_BY_FREESPEED);
-		writer.writeField(Labels.ACCESSIBILITY_BY_CAR);
-		writer.writeField(Labels.ACCESSIBILITY_BY_BIKE);
-		writer.writeField(Labels.ACCESSIBILITY_BY_WALK);
-		writer.writeField(Labels.ACCESSIBILITY_BY_PT);
-		// yyyyyy the above needs to be replaced by a loop over Modes4Accessibility.values() . kai/mz, jul'15
-
-
+		for (Modes4Accessibility mode : Modes4Accessibility.values()) {
+			writer.writeField(mode.toString() + "_accessibility");
+		}
 		writer.writeNewLine();
 
 
@@ -200,12 +202,13 @@ public class AccessibilityBasedLocationOptimizer {
 			writer.writeField(coord.getX());
 			writer.writeField(coord.getY());
 
-			Map<Modes4Accessibility, Double> valuesByMode = map.get(analysisPointId);
+			Map<String, Double> valuesByMode = map.get(analysisPointId);
 
 			for (Modes4Accessibility mode : Modes4Accessibility.values()) {
 //				double value = valuesByMode.get(mode);
 				// TODO figure out how to deal with missing modes
-				double value = valuesByMode.get(Modes4Accessibility.walk);
+				double value = valuesByMode.get(Modes4Accessibility.walk.name());
+				Gbl.assertNotNull(value);
 				writer.writeField(value);
 			}
 			writer.writeNewLine();

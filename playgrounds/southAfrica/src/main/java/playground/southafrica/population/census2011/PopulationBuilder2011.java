@@ -13,9 +13,9 @@ import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PopulationFactory;
+import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.population.PersonUtils;
-import org.matsim.core.population.PopulationWriter;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.io.IOUtils;
 import org.matsim.core.utils.misc.Counter;
@@ -69,7 +69,8 @@ public class PopulationBuilder2011 {
 	 * <ol>
 	 * 		<li> input folder where the MLIPF zonal population was written to;
 	 * 		<li> the subplace shapefile corresponding to the subplaces for 
-	 * 			which the population was fitted;
+	 * 			 which the population was fitted (it seems, JWJ Dec 2016) that 
+	 * 		     the CRS used is a projected one, typically WGS84_SA_Albers;
 	 * 		<li> the Id field containing the subplace code; and
 	 * 		<li> the output folder where the population will be written to.
 	 * </ol>

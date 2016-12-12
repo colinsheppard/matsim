@@ -28,6 +28,7 @@ import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Population;
 import org.matsim.api.core.v01.population.PopulationFactory;
 import org.matsim.utils.objectattributes.ObjectAttributes;
+import org.matsim.utils.objectattributes.attributable.Attributes;
 
 public class FilteredPopulation implements Population {
 
@@ -61,5 +62,15 @@ public class FilteredPopulation implements Population {
 	public ObjectAttributes getPersonAttributes() {
 		return null;
 	}
-	
+
+	@Override
+	public Person removePerson(Id<Person> personId) {
+		// TODO Auto-generated method stub
+		throw new RuntimeException("not implemented") ;
+	}
+
+	@Override
+	public Attributes getAttributes() {
+		throw new UnsupportedOperationException();
+	}
 }

@@ -36,6 +36,7 @@ import org.matsim.api.core.v01.events.LinkLeaveEvent;
 import org.matsim.api.core.v01.events.handler.LinkEnterEventHandler;
 import org.matsim.api.core.v01.events.handler.LinkLeaveEventHandler;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Leg;
@@ -45,6 +46,7 @@ import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.config.groups.QSimConfigGroup.VehiclesSource;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.mobsim.qsim.ActivityEngine;
 import org.matsim.core.mobsim.qsim.QSim;
@@ -52,7 +54,7 @@ import org.matsim.core.mobsim.qsim.TeleportationEngine;
 import org.matsim.core.mobsim.qsim.agents.AgentFactory;
 import org.matsim.core.mobsim.qsim.agents.DefaultAgentFactory;
 import org.matsim.core.mobsim.qsim.agents.PopulationAgentSource;
-import org.matsim.core.network.NetworkImpl;
+import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.population.routes.LinkNetworkRouteFactory;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
@@ -64,48 +66,49 @@ import org.matsim.vehicles.VehicleUtils;
  * Tests that two persons can leave a link at the same time if flow capacity permits
  * In other words, test if qsim can handle capacity more than 3600 PCU/Hr.
  * If the flow capacity is 3601 PCU/Hr it will allow the two vehicles.
- * 
+ *
+ * @author amit
  */
 public class FlowCapacityVariationTest {
 	
 	@Test
 	public void twoCarsLeavingTimes () {
-		VehicleLeavingSameTime(TransportMode.car,3601);
+		vehiclesLeavingSameTime(TransportMode.car,3601);
 	}
 
 	@Test 
 	public void twoMotorbikesTravelTime(){
 		/* linkCapacity higher than 1PCU/sec*/
-		VehicleLeavingSameTime("motorbike",3601);
+		vehiclesLeavingSameTime("motorbike",3601);
 		
 		/*link capacuty higher than 1motorbike/sec = 0.25PCU/sec */
-		VehicleLeavingSameTime("motorbike",1800);
+		vehiclesLeavingSameTime("motorbike",1800);
 	}
 	
 	@Test 
 	public void twoBikesTravelTime(){
 		/* linkCapacity higher than 1PCU/sec */
-		VehicleLeavingSameTime(TransportMode.bike,3601);
+		vehiclesLeavingSameTime(TransportMode.bike,3601);
 				
 		/* link capacuty higher than 1motorbike/sec = 0.25PCU/sec */
-		VehicleLeavingSameTime(TransportMode.bike,1800);
+		vehiclesLeavingSameTime(TransportMode.bike,1800);
 	}
 	
-	private void VehicleLeavingSameTime(String travelMode, double linkCapacity){
+	private void vehiclesLeavingSameTime(String travelMode, double linkCapacity){
 		PseudoInputs net = new PseudoInputs(travelMode);
 		net.createNetwork(linkCapacity);
 		net.createPopulation();
 
-		Map<Id<Person>, Map<Id<Link>, double[]>> personLinkTravelTimes = new HashMap<Id<Person>, Map<Id<Link>, double[]>>();
+		Map<Id<Vehicle>, Map<Id<Link>, double[]>> vehicleLinkTravelTimes = new HashMap<>();
 
 		EventsManager manager = EventsUtils.createEventsManager();
-		manager.addHandler(new PersonLinkTravelTimeEventHandler(personLinkTravelTimes));
+		manager.addHandler(new VehicleLinkTravelTimeEventHandler(vehicleLinkTravelTimes));
 
 		QSim qSim = createQSim(net,manager);
 		qSim.run();
 
-		Map<Id<Link>, double[]> times1 = personLinkTravelTimes.get(Id.create("1", Person.class));
-		Map<Id<Link>, double[]> times2 = personLinkTravelTimes.get(Id.create("2", Person.class));
+		Map<Id<Link>, double[]> times1 = vehicleLinkTravelTimes.get(Id.create("1", Vehicle.class));
+		Map<Id<Link>, double[]> times2 = vehicleLinkTravelTimes.get(Id.create("2", Vehicle.class));
 
 		int linkEnterTime1 = (int)times1.get(Id.create("2", Link.class))[0]; 
 		int linkEnterTime2 = (int)times2.get(Id.create("2", Link.class))[0];
@@ -140,7 +143,7 @@ public class FlowCapacityVariationTest {
 
 		final Config config;
 		final Scenario scenario ;
-		NetworkImpl network;
+		Network network;
 		final Population population;
 		Link link1;
 		Link link2;
@@ -161,24 +164,32 @@ public class FlowCapacityVariationTest {
 
 		private void createNetwork(double linkCapacity){
 
-			network = (NetworkImpl) scenario.getNetwork();
+			network = (Network) scenario.getNetwork();
 
 			double x = -100.0;
-			Node node1 = network.createAndAddNode(Id.create("1", Node.class), new Coord(x, 0.0));
-			Node node2 = network.createAndAddNode(Id.create("2", Node.class), new Coord(0.0, 0.0));
-			Node node3 = network.createAndAddNode(Id.create("3", Node.class), new Coord(0.0, 1000.0));
-			Node node4 = network.createAndAddNode(Id.create("4", Node.class), new Coord(0.0, 1100.0));
+			Node node1 = NetworkUtils.createAndAddNode(network, Id.create("1", Node.class), new Coord(x, 0.0));
+			Node node2 = NetworkUtils.createAndAddNode(network, Id.create("2", Node.class), new Coord(0.0, 0.0));
+			Node node3 = NetworkUtils.createAndAddNode(network, Id.create("3", Node.class), new Coord(0.0, 1000.0));
+			Node node4 = NetworkUtils.createAndAddNode(network, Id.create("4", Node.class), new Coord(0.0, 1100.0));
+			final Node fromNode = node1;
+			final Node toNode = node2;
 
-			link1 = network.createAndAddLink(Id.create("1", Link.class), node1, node2, 1000, 25, 7200, 1, null, "22"); 
-			link2 = network.createAndAddLink(Id.create("2", Link.class), node2, node3, 1000, 25, linkCapacity, 1, null, "22");	
-			link3 = network.createAndAddLink(Id.create("3", Link.class), node3, node4, 1000, 25, 7200, 1, null, "22");
+			link1 = NetworkUtils.createAndAddLink(network,Id.create("1", Link.class), fromNode, toNode, (double) 1000, (double) 25, (double) 7200, (double) 1, null, "22");
+			final Node fromNode1 = node2;
+			final Node toNode1 = node3;
+			final double capacity = linkCapacity; 
+			link2 = NetworkUtils.createAndAddLink(network,Id.create("2", Link.class), fromNode1, toNode1, (double) 1000, (double) 25, capacity, (double) 1, null, "22");
+			final Node fromNode2 = node3;
+			final Node toNode2 = node4;	
+			link3 = NetworkUtils.createAndAddLink(network,Id.create("3", Link.class), fromNode2, toNode2, (double) 1000, (double) 25, (double) 7200, (double) 1, null, "22");
 
 		}
 		
 		private void createPopulation(){
 
 			// Vehicles info			
-			scenario.getConfig().qsim().setUseDefaultVehicles(false);
+//			scenario.getConfig().qsim().setUseDefaultVehicles(false);
+			scenario.getConfig().qsim().setVehiclesSource( VehiclesSource.fromVehiclesData ) ;
 
 			VehicleType vt = VehicleUtils.getFactory().createVehicleType(Id.create(travelMode, VehicleType.class));
 			vt.setMaximumVelocity(travelMode == "bike" ? 5.0 : 20.0 );
@@ -216,23 +227,23 @@ public class FlowCapacityVariationTest {
 
 	}
 
-	private static class PersonLinkTravelTimeEventHandler implements LinkEnterEventHandler, LinkLeaveEventHandler {
+	private static class VehicleLinkTravelTimeEventHandler implements LinkEnterEventHandler, LinkLeaveEventHandler {
 
-		private final Map<Id<Person>, Map<Id<Link>, double[]>> personLinkEnterLeaveTimes;
+		private final Map<Id<Vehicle>, Map<Id<Link>, double[]>> vehicleLinkEnterLeaveTimes;
 
-		public PersonLinkTravelTimeEventHandler(Map<Id<Person>, Map<Id<Link>, double[]>> agentLinkEnterLeaveTimes) {
-			this.personLinkEnterLeaveTimes = agentLinkEnterLeaveTimes;
+		public VehicleLinkTravelTimeEventHandler(Map<Id<Vehicle>, Map<Id<Link>, double[]>> agentLinkEnterLeaveTimes) {
+			this.vehicleLinkEnterLeaveTimes = agentLinkEnterLeaveTimes;
 		}
 
 		@Override
 		public void handleEvent(LinkEnterEvent event) {
-			Logger.getLogger(PersonLinkTravelTimeEventHandler.class).info(event.toString());
-			Map<Id<Link>, double[]> times = this.personLinkEnterLeaveTimes.get(Id.createPersonId(event.getVehicleId()));
+			Logger.getLogger(VehicleLinkTravelTimeEventHandler.class).info(event.toString());
+			Map<Id<Link>, double[]> times = this.vehicleLinkEnterLeaveTimes.get(event.getVehicleId());
 			if (times == null) {
-				times = new HashMap<Id<Link>, double[]>();
+				times = new HashMap<>();
 				double [] linkEnterLeaveTime = {Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY};
 				times.put(event.getLinkId(), linkEnterLeaveTime);
-				this.personLinkEnterLeaveTimes.put(Id.createPersonId(event.getVehicleId()), times);
+				this.vehicleLinkEnterLeaveTimes.put(event.getVehicleId(), times);
 			}
 			double linkLeaveTime;
 			if(times.get(event.getLinkId())!=null){
@@ -245,8 +256,8 @@ public class FlowCapacityVariationTest {
 
 		@Override
 		public void handleEvent(LinkLeaveEvent event) {
-			Logger.getLogger(PersonLinkTravelTimeEventHandler.class).info(event.toString());
-			Map<Id<Link>, double[]> times = this.personLinkEnterLeaveTimes.get(Id.createPersonId(event.getVehicleId()));
+			Logger.getLogger(VehicleLinkTravelTimeEventHandler.class).info(event.toString());
+			Map<Id<Link>, double[]> times = this.vehicleLinkEnterLeaveTimes.get(event.getVehicleId());
 			if (times != null) {
 				double linkEnterTime = times.get(event.getLinkId())[0];
 				double [] linkEnterLeaveTime = {linkEnterTime,event.getTime()};

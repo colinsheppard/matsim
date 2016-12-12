@@ -81,6 +81,8 @@ public class CombinedOsmSink implements Sink {
 	private Map<String, String> tourismTypeMap = new HashMap<>();
 	private List<String> unmannedEntitiesList;
 	
+	private String idPrefix = "";
+	
 	private double buildingTypeFromVicinityRange;
 	
 	private String outputCRS;
@@ -218,11 +220,10 @@ public class CombinedOsmSink implements Sink {
 		// go over all entities
 		for(long entityKey : entityMap.keySet()){
 //			boolean ignoreBecauseOfTag = false;
-		
+			
 			Entity entity = entityMap.get(entityKey).getEntity();
 			Map<String, String> tags = new TagCollectionImpl(entity.getTags()).buildMap();
 
-			
 			// get coordinates of centroid of entity
 			Coord centroidCoord = CoordUtils.getCentroidCoord(entity, ct, this.nodeMap, this.wayMap, this.relationMap);
 
@@ -230,14 +231,7 @@ public class CombinedOsmSink implements Sink {
 			// handle and possibly modify name
 			// & and " need to be replaced to avoid problems with parsing the facilities file later
 			String name = tags.get("name");
-			if(name != null) {
-				if (name.contains("&")) {							
-					name = name.replaceAll("&", "u");
-				}
-				if (name.contains("\"")) {							
-					name = name.replaceAll("\"", "");
-				}
-			}
+			name = AccessibilityOsmUtils.simplifyString(name);
 			
 			
 			// get other relevant tags
@@ -249,7 +243,15 @@ public class CombinedOsmSink implements Sink {
 			String sportType = tags.get("sport");
 			String tourismType = tags.get("tourism");
 			String buildingType = tags.get("building");
+			String access = tags.get("access");
 
+			
+			/*TODO Check that private amenities are ignored */
+			if(access != null){
+				if(access.equalsIgnoreCase("private")){
+					continue;
+				}
+			}
 			
 			// entities with amenity tag are converted into a facility with activity option according
 			// to user-specified mapping and a work option unless they belong to "unmanned facilities"
@@ -294,6 +296,17 @@ public class CombinedOsmSink implements Sink {
 				if (activityType == FacilityTypes.IGNORE) {
 					// System.out.println("activityType == ignore");
 					continue;
+				}
+				
+				/* Remove swimming pools that are not explicitly indicated as public. */
+				if(leisureType.equalsIgnoreCase("swimming_pool")){
+					if(access == null){
+						continue;
+					} else if(!access.equalsIgnoreCase("public")){
+						continue;
+					} else{
+						log.info("Public pool");
+					}
 				}
 
 				// Create facility for shop
@@ -383,9 +396,14 @@ public class CombinedOsmSink implements Sink {
 				
 				// Create facility for building
 				if (activityType != null) {
-					createFacility(aff, entity, name, centroidCoord, activityType);
-					if ( !this.unmannedEntitiesList.contains(buildingType) ) {
-						createFacility(aff, entity, name, centroidCoord, FacilityTypes.WORK);
+					if(activityType.equalsIgnoreCase(FacilityTypes.HOME)){
+						/* Ignore certain buildings that has non-work activity associated with it. */
+					} else{
+						/* Associate work with it. */
+						createFacility(aff, entity, name, centroidCoord, activityType);
+						if ( !this.unmannedEntitiesList.contains(buildingType) ) {
+							createFacility(aff, entity, name, centroidCoord, FacilityTypes.WORK);
+						}
 					}
 				}
 			}
@@ -396,7 +414,7 @@ public class CombinedOsmSink implements Sink {
 	private void createFacility(
 			ActivityFacilitiesFactory activityFacilityFactory, Entity entity,
 			String name, Coord coord, String activityType) {
-		Id<ActivityFacility> facilityId = Id.create(entity.getId(), ActivityFacility.class);
+		Id<ActivityFacility> facilityId = Id.create(idPrefix + entity.getId(), ActivityFacility.class);
 		ActivityFacility activityFacility;
 
 		// activity facility
@@ -566,6 +584,16 @@ public class CombinedOsmSink implements Sink {
 		return matsimType;
 	}
 
+	/**
+	 * Sets a prefix that will be used for each id. For example, useful when
+	 * parsing from osm (as one of many sources) to use the prefix "osm_" so 
+	 * that the resulting facilities can be identified accordingly.
+	 * 
+	 * @param prefix
+	 */
+	public void setIdPrefix(String prefix){
+		this.idPrefix = prefix;
+	}
 
 	@Override
 	public void initialize(Map<String, Object> metaData) {

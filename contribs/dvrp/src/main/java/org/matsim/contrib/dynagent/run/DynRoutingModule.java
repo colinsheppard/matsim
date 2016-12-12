@@ -22,7 +22,7 @@ package org.matsim.contrib.dynagent.run;
 import java.util.*;
 
 import org.matsim.api.core.v01.population.*;
-import org.matsim.core.population.LegImpl;
+import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.GenericRouteImpl;
 import org.matsim.core.router.*;
 import org.matsim.facilities.Facility;
@@ -32,13 +32,13 @@ public class DynRoutingModule
     implements RoutingModule
 {
     private final String mode;
-
+    private StageActivityTypes stageActivityTypes = null;
 
     public DynRoutingModule(String mode)
     {
         this.mode = mode;
     }
-
+    
 
     @Override
     public List<? extends PlanElement> calcRoute(Facility<?> fromFacility, Facility<?> toFacility,
@@ -48,7 +48,7 @@ public class DynRoutingModule
         route.setDistance(Double.NaN);
         route.setTravelTime(Double.NaN);
 
-        Leg leg = new LegImpl(mode);
+        Leg leg = PopulationUtils.createLeg(mode);
         leg.setDepartureTime(departureTime);
         leg.setTravelTime(Double.NaN);
         leg.setRoute(route);
@@ -56,10 +56,17 @@ public class DynRoutingModule
         return Collections.singletonList(leg);
     }
 
-
+    /**
+	 * @param stageActivityTypes the stageActivityTypes to set
+	 */
+	public void setStageActivityTypes(StageActivityTypes stageActivityTypes) {
+		this.stageActivityTypes = stageActivityTypes;
+	}
+    
     @Override
     public StageActivityTypes getStageActivityTypes()
     {
-        return EmptyStageActivityTypes.INSTANCE;
+    	
+        return ((this.stageActivityTypes!=null)?this.stageActivityTypes:EmptyStageActivityTypes.INSTANCE);
     }
 }

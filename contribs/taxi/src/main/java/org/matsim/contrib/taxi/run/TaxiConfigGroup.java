@@ -19,6 +19,9 @@
 
 package org.matsim.contrib.taxi.run;
 
+import java.net.URL;
+import java.util.Map;
+
 import org.matsim.core.config.*;
 
 
@@ -40,7 +43,8 @@ public class TaxiConfigGroup
     public static final String DROPOFF_DURATION = "dropoffDuration";
     public static final String A_STAR_EUCLIDEAN_OVERDO_FACTOR = "AStarEuclideanOverdoFactor";
     public static final String ONLINE_VEHICLE_TRACKER = "onlineVehicleTracker";
-
+    public static final String BREAK_IF_NOT_All_REQUESTS_SERVED = "breakIfNotAllRequestsServed";
+    
     //input
     public static final String TAXIS_FILE = "taxisFile";
 
@@ -49,6 +53,7 @@ public class TaxiConfigGroup
     public static final String DETAILED_STATS = "detailedStats";
 
     public static final String OPTIMIZER_PARAMETER_SET = "optimizer";
+    
 
     private boolean destinationKnown = false;
     private boolean vehicleDiversion = false;
@@ -61,11 +66,44 @@ public class TaxiConfigGroup
 
     private boolean timeProfiles = false;
     private boolean detailedStats = false;
-
+    private boolean breakSimulationIfNotAllRequestsServed = true;
 
     public TaxiConfigGroup()
     {
         super(GROUP_NAME);
+    }
+
+    
+    @Override
+    public Map<String, String> getComments()
+    {
+        Map<String, String> map = super.getComments();
+        map.put(DESTINATION_KNOWN, "If false, the drop-off location remains unknown to the"
+                + " optimizer and scheduler until the end of pickup");
+        map.put(VEHICLE_DIVERSION, "If true, vehicles can be diverted during empty trips."
+                + " Requires online tracking.");
+        map.put(PICKUP_DURATION, "Typically, 120 seconds");
+        map.put(DROPOFF_DURATION, "Typically, 60 seconds");
+        map.put(A_STAR_EUCLIDEAN_OVERDO_FACTOR,
+                "Used in AStarEuclidean for shortest path search for occupied drives."
+                        + " Values above 1.0 (typically, 1.5 to 3.0) speed up the search,"
+                        + " but at the cost of obtaining longer paths");
+        map.put(ONLINE_VEHICLE_TRACKER,
+                "If true, vehicles are (GPS-like) monitored while moving."
+                        + " This helps in getting more accurate estimates on the time of arrival."
+                        + " Online tracking is necessary for vehicle diversion.");
+        map.put(TAXIS_FILE, "An XML file specifying the taxi fleet."
+                + " The file format according to dvrp_vehicles_v1.dtd");
+        map.put(TIME_PROFILES, "If true, time profiles of vehicle statuses (i.e. current task type)"
+                + " and the number of unplanned requests");
+        map.put(DETAILED_STATS,
+                "If true, detailed hourly taxi stats are dumped after each" + " iteration.");
+        map.put(OPTIMIZER_PARAMETER_SET,//currently, comments for parameter sets are not printed
+                "Specifies the type and parameters of the TaxiOptimizer."
+                        + " See: TaxiOptimizerParams and classes implementing it,"
+                        + " e.g. AbstractTaxiOptimizerParams.");
+        map.put(BREAK_IF_NOT_All_REQUESTS_SERVED, "Specifies whether the simulation should interrupt if not all requests were performed when an interation ends. Otherwise, a warning is given. Default == true");
+        return map;
     }
 
 
@@ -144,6 +182,15 @@ public class TaxiConfigGroup
     {
         return onlineVehicleTracker;
     }
+    
+    @StringGetter(BREAK_IF_NOT_All_REQUESTS_SERVED)
+    public boolean isBreakSimulationIfNotAllRequestsServed() {
+		return breakSimulationIfNotAllRequestsServed;
+	}
+    @StringSetter(BREAK_IF_NOT_All_REQUESTS_SERVED)
+    public void setBreakSimulationIfNotAllRequestsServed(boolean breakSimulationIfNotAllRequestsServed) {
+		this.breakSimulationIfNotAllRequestsServed = breakSimulationIfNotAllRequestsServed;
+	}
 
 
     @StringSetter(ONLINE_VEHICLE_TRACKER)
@@ -158,7 +205,10 @@ public class TaxiConfigGroup
     {
         return taxisFile;
     }
-
+    
+    public URL getTaxisFileUrl(URL context) {
+		return ConfigGroup.getInputFileURL(context, this.taxisFile);
+	}
 
     @StringSetter(TAXIS_FILE)
     public void setTaxisFile(String taxisFile)

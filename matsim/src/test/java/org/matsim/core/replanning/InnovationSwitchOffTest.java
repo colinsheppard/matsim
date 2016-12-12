@@ -43,6 +43,7 @@ import org.matsim.core.replanning.modules.ReRoute;
 import org.matsim.core.replanning.modules.TimeAllocationMutator;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.core.scenario.ScenarioByConfigModule;
+import org.matsim.examples.ExamplesUtils;
 import org.matsim.testcases.MatsimTestUtils;
 
 import java.util.Collections;
@@ -62,12 +63,11 @@ public class InnovationSwitchOffTest {
 	 */
 	@Test
 	public void testInnovationSwitchOff() {
-		Config config = ConfigUtils.createConfig();
+		Config config = ConfigUtils.createConfig(ExamplesUtils.getTestScenarioURL("equil"));
 		config.controler().setOutputDirectory(this.utils.getOutputDirectory());
 
-		config.network().setInputFile("test/scenarios/equil/network.xml");
-//		config.plans().setInputFile("test/scenarios/equil/plans100.xml") ;
-		config.plans().setInputFile("test/scenarios/equil/plans2.xml");
+		config.network().setInputFile("network.xml");
+		config.plans().setInputFile("plans2.xml");
 
 		{
 			StrategySettings settings = new StrategySettings(Id.create(1, StrategySettings.class));

@@ -24,43 +24,36 @@ import org.matsim.contrib.dvrp.data.Vehicle;
 import org.matsim.contrib.dvrp.schedule.Schedule.ScheduleStatus;
 import org.matsim.contrib.taxi.data.TaxiData;
 
-import playground.michalm.ev.UnitConversionRatios;
-import playground.michalm.ev.charging.PartialFastChargingWithQueueingLogic;
 import playground.michalm.ev.data.*;
-import playground.michalm.ev.discharging.EnergyConsumptions;
-import playground.michalm.taxi.data.ETaxi;
+import playground.michalm.ev.discharging.*;
+import playground.michalm.ev.discharging.OhdeSlaskiAuxEnergyConsumption.TemperatureProvider;
+import playground.michalm.taxi.data.EvrpVehicle;
+import playground.michalm.taxi.data.EvrpVehicle.Ev;
 
 
 public class ETaxiUtils
 {
     public static void initEvData(TaxiData taxiData, EvData evData)
     {
-        // TODO reduce charging speed in winter
+        TemperatureProvider tempProvider = () -> 20;// aux power about 1 kW at 20oC
+        double chargingSpeedFactor = 1.; //full speed
+
         for (Charger c : evData.getChargers().values()) {
-            new PartialFastChargingWithQueueingLogic(c);
+            new ETaxiChargingLogic(c, chargingSpeedFactor);
         }
 
-        // TODO variable AUX -- depends on weather etc...
-        // TODO add the Leaf's consumption model for driving 
-        double driveRate = 15. * UnitConversionRatios.J_m_PER_kWh_100km; //15 kWh/100km == 150 Wh/km
-        double auxPower = 0.5 * UnitConversionRatios.W_PER_kW; //0.5 kW
-
         for (Vehicle v : taxiData.getVehicles().values()) {
-            ElectricVehicleImpl ev = (ElectricVehicleImpl) ((ETaxi)v).getEv();
-            ev.setDriveEnergyConsumption((link, travelTime) -> EnergyConsumptions
-                    .consumeFixedDriveEnergy(ev, driveRate, link));
+            Ev ev = ((EvrpVehicle)v).getEv();
+            ev.setDriveEnergyConsumption(new OhdeSlaskiDriveEnergyConsumption());
             ev.setAuxEnergyConsumption(
-                    (period) -> consumeFixedAuxEnergyWhenScheduleStarted(ev, v, auxPower, period));
+                    new OhdeSlaskiAuxEnergyConsumption(ev, tempProvider, ETaxiUtils::isTurnedOn));
             evData.addElectricVehicle(Id.createVehicleId(v.getId()), ev);
         }
     }
 
 
-    public static void consumeFixedAuxEnergyWhenScheduleStarted(ElectricVehicle ev, Vehicle taxi,
-            double auxPower, double period)
+    private static boolean isTurnedOn(ElectricVehicle ev)
     {
-        if (taxi.getSchedule().getStatus() == ScheduleStatus.STARTED) {
-            ev.getBattery().discharge(auxPower * period);
-        }
+        return ((Ev)ev).getEvrpVehicle().getSchedule().getStatus() == ScheduleStatus.STARTED;
     }
 }

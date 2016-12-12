@@ -17,20 +17,20 @@ import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.Population;
+import org.matsim.api.core.v01.population.PopulationFactory;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.groups.QSimConfigGroup;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.mobsim.qsim.QSim;
 import org.matsim.core.mobsim.qsim.QSimUtils;
-import org.matsim.core.population.PopulationFactoryImpl;
 import org.matsim.core.population.routes.LinkNetworkRouteFactory;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.lanes.data.v20.Lane;
-import org.matsim.lanes.data.v20.Lanes;
-import org.matsim.lanes.data.v20.LaneDefinitionsFactory20;
-import org.matsim.lanes.data.v20.LanesToLinkAssignment20;
+import org.matsim.lanes.data.Lane;
+import org.matsim.lanes.data.Lanes;
+import org.matsim.lanes.data.LanesFactory;
+import org.matsim.lanes.data.LanesToLinkAssignment;
 import org.matsim.testcases.MatsimTestUtils;
 
 public class LanesTest {
@@ -137,7 +137,7 @@ public class LanesTest {
 		
 		//create Lanes
 		Lanes lanes = scenario.getLanes();
-		LaneDefinitionsFactory20 lb = lanes.getFactory();
+		LanesFactory lb = lanes.getFactory();
 		Id<Lane> ol = Id.create("2.ol", Lane.class);
 		Id<Lane> topLane = Id.create("2.1", Lane.class);
 //		Id<Lane> middleLane = Id.create("2.2", Lane.class);
@@ -152,7 +152,7 @@ public class LanesTest {
 		olLane.addToLaneId(topLane);
 		olLane.addToLaneId(bottomLane);
 		olLane.setCapacityVehiclesPerHour(5400);
-		LanesToLinkAssignment20 l2l = lb.createLanesToLinkAssignment(linkId2);
+		LanesToLinkAssignment l2l = lb.createLanesToLinkAssignment(linkId2);
 		l2l.addLane(olLane);
 		
 		//split link in 2 lanes		
@@ -189,7 +189,7 @@ public class LanesTest {
 	}
 	
 	 Config createConfig(){
-		Config config = utils.loadConfig(null);
+		Config config = utils.createConfig();
 		QSimConfigGroup qSimConfigGroup = config.qsim();
 		qSimConfigGroup.setFlowCapFactor(1.0);
 		qSimConfigGroup.setStorageCapFactor(1.0);
@@ -205,7 +205,7 @@ public class LanesTest {
 	private static void createPopulation(Scenario scenario, int NumberOfPersons) {
 		
 		Population population = scenario.getPopulation();
-        PopulationFactoryImpl popFactory = (PopulationFactoryImpl) scenario.getPopulation().getFactory();
+        PopulationFactory popFactory = (PopulationFactory) scenario.getPopulation().getFactory();
 		LinkNetworkRouteFactory routeFactory = new LinkNetworkRouteFactory();
 
 		for(int i=NumberOfPersons; i>= 1; i--){

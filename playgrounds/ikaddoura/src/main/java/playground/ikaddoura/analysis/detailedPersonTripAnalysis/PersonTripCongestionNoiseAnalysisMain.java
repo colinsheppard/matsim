@@ -102,19 +102,22 @@ public class PersonTripCongestionNoiseAnalysisMain {
 	}
 
 	public void run() {
-					
-		String networkFile = runDirectory + "output_network.xml.gz";
+		
 		String configFile = runDirectory + "output_config.xml.gz";
-		String populationFile = runDirectory + "output_plans.xml.gz";
+		String networkFile = "output_network.xml.gz";
+		String populationFile = "output_plans.xml.gz";
 
 		Config config = ConfigUtils.loadConfig(configFile);	
 		config.plans().setInputFile(populationFile);
+		config.plans().setInputPersonAttributeFile(null);
 		config.network().setInputFile(networkFile);
+		log.info("network file: " + config.network().getInputFile());
 		config.network().setChangeEventsInputFile(null);
-		
+		config.vehicles().setVehiclesFile(null);
+
 		int finalIteration = config.controler().getLastIteration();
 		String eventsFile = runDirectory + "ITERS/it." + finalIteration + "/" + finalIteration + ".events.xml.gz";
-		String outputPath = runDirectory + "ITERS/it." + finalIteration + "/analysis/";
+		String outputPath = runDirectory + "ITERS/it." + finalIteration + "/person-trip-analysis/";
 		
 		analyzeCongestionEvents = false;
 		analyzeNoiseEvents = false;
@@ -180,7 +183,7 @@ public class PersonTripCongestionNoiseAnalysisMain {
 		
 				log.info("Reading the congestion events file...");
 				CongestionEventsReader congestionEventsReader = new CongestionEventsReader(eventsCongestion);		
-				congestionEventsReader.parse(congestionEventsFile);
+				congestionEventsReader.readFile(congestionEventsFile);
 				log.info("Reading the congestion events file... Done.");	
 			}	
 		}	
@@ -197,7 +200,7 @@ public class PersonTripCongestionNoiseAnalysisMain {
 						
 				log.info("Reading noise events file...");
 				NoiseEventsReader noiseEventReader = new NoiseEventsReader(eventsNoise);		
-				noiseEventReader.parse(noiseEventsFile);
+				noiseEventReader.readFile(noiseEventsFile);
 				log.info("Reading noise events file... Done.");	
 			}
 		}	

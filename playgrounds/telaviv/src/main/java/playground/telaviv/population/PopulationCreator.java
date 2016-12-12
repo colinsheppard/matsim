@@ -24,9 +24,13 @@ import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
+import org.matsim.api.core.v01.population.Activity;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PopulationFactory;
+import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.MatsimRandom;
@@ -173,7 +177,7 @@ public class PopulationCreator {
 			Id<Person> id = Id.create(String.valueOf(entry.getKey()), Person.class);
 			ParsedPerson emme2Person = entry.getValue();
 
-			PersonImpl person = (PersonImpl) populationFactory.createPerson(id);
+			Person person = (Person) populationFactory.createPerson(id);
 			
 			setBasicParameters(person, emme2Person);
 
@@ -194,7 +198,7 @@ public class PopulationCreator {
 		log.info("done.");
 		
 		log.info("Writing MATSim population to file...");
-		new PopulationWriter(scenario.getPopulation(), scenario.getNetwork()).writeFileV4(basePath + outputFile);
+		new PopulationWriter(scenario.getPopulation(), scenario.getNetwork()).writeV4(basePath + outputFile);
 		log.info("done.");
 	}
 	
@@ -271,7 +275,7 @@ public class PopulationCreator {
 	 * 3 - shopping
 	 * 4 - other (leisure)
 	 */
-	private boolean createAndAddInitialPlan(PersonImpl person, ParsedPerson emme2Person, Scenario scenario,
+	private boolean createAndAddInitialPlan(Person person, ParsedPerson emme2Person, Scenario scenario,
 			Map<Integer, List<ActivityFacility>> facilitiesToZoneMap, Map<Integer, Emme2Zone> zonalAttributes) {
 		if ( true ) throw new RuntimeException( "desires do not exist anymore. Please find a way to do another way or contact the core team." );
 		PopulationFactory populationFactory = scenario.getPopulation().getFactory();
@@ -281,8 +285,8 @@ public class PopulationCreator {
 		person.setSelectedPlan(plan);
 		//Desires desires = person.createDesires("");
 
-		LegImpl leg;
-		ActivityImpl activity;
+		Leg leg;
+		Activity activity;
 //		Route route;
 		String transportMode;
 		ActivityFacility activityFacility;
@@ -346,7 +350,7 @@ public class PopulationCreator {
 		 * not valid the persons stays at home the whole day.
 		 */
 		homeFacility = selectFacilityByZone(homeZone, facilitiesToZoneMap);
-		activity = (ActivityImpl) populationFactory.createActivityFromCoord("home", homeFacility.getCoord());
+		activity = (Activity) populationFactory.createActivityFromCoord("home", homeFacility.getCoord());
 		activity.setFacilityId(homeFacility.getId());
 		activity.setLinkId(homeFacility.getLinkId());
 		activity.setStartTime(0.0);
@@ -387,10 +391,11 @@ public class PopulationCreator {
 			if (primaryPreStop) {
 				ActivityFacility primaryPreFacility = selectFacilityByZone(primaryPreStopActivityZone, facilitiesToZoneMap);
 
-				leg = (LegImpl) populationFactory.createLeg(transportMode);
+				leg = (Leg) populationFactory.createLeg(transportMode);
 				leg.setDepartureTime(time);
 				leg.setTravelTime(0.0);
-				leg.setArrivalTime(time);
+				final double arrTime = time;
+				leg.setTravelTime( arrTime - leg.getDepartureTime() );
 //				route = routeFactory.createRoute(previousActivityLinkId, primaryPreLinkId);
 //				leg.setRoute(route);
 				plan.addLeg(leg);
@@ -402,7 +407,7 @@ public class PopulationCreator {
 				activityType = getActivityTypeString(primaryPreStopActivityType, primaryPreFacility);
 				if (activityType == null) return false;
 				
-				activity = (ActivityImpl) populationFactory.createActivityFromCoord(activityType, primaryPreFacility.getCoord());
+				activity = (Activity) populationFactory.createActivityFromCoord(activityType, primaryPreFacility.getCoord());
 				activity.setFacilityId(primaryPreFacility.getId());
 				activity.setLinkId(primaryPreFacility.getLinkId());
 				activity.setStartTime(time);
@@ -425,10 +430,11 @@ public class PopulationCreator {
 			 */
 			ActivityFacility primaryFacility = selectFacilityByZone(primaryMainActivityZone, facilitiesToZoneMap);
 
-			leg = (LegImpl) populationFactory.createLeg(transportMode);
+			leg = (Leg) populationFactory.createLeg(transportMode);
 			leg.setDepartureTime(time);
 			leg.setTravelTime(0.0);
-			leg.setArrivalTime(time);
+			final double arrTime = time;
+			leg.setTravelTime( arrTime - leg.getDepartureTime() );
 //			route = routeFactory.createRoute(previousActivityLinkId, primaryLinkId);
 //			leg.setRoute(route);
 			plan.addLeg(leg);
@@ -440,7 +446,7 @@ public class PopulationCreator {
 			activityType = getActivityTypeString(primaryMainActivityType, primaryFacility);
 			if (activityType == null) return false;
 			
-			activity = (ActivityImpl) populationFactory.createActivityFromCoord(activityType, primaryFacility.getCoord());
+			activity = (Activity) populationFactory.createActivityFromCoord(activityType, primaryFacility.getCoord());
 			activity.setFacilityId(primaryFacility.getId());
 			activity.setLinkId(primaryFacility.getLinkId());
 			activity.setStartTime(time);
@@ -459,10 +465,11 @@ public class PopulationCreator {
 			if (primaryPostStop) {
 				ActivityFacility primaryPostFacility = selectFacilityByZone(primaryPostStopActivityZone, facilitiesToZoneMap);
 
-				leg = (LegImpl) populationFactory.createLeg(transportMode);
+				leg = (Leg) populationFactory.createLeg(transportMode);
 				leg.setDepartureTime(time);
 				leg.setTravelTime(0.0);
-				leg.setArrivalTime(time);
+				final double arrTime1 = time;
+				leg.setTravelTime( arrTime1 - leg.getDepartureTime() );
 //				route = routeFactory.createRoute(previousActivityLinkId, primaryPostLinkId);
 //				leg.setRoute(route);
 				plan.addLeg(leg);
@@ -474,7 +481,7 @@ public class PopulationCreator {
 				activityType = getActivityTypeString(primaryPostStopActivityType, primaryPostFacility);
 				if (activityType == null) return false;
 
-				activity = (ActivityImpl) populationFactory.createActivityFromCoord(activityType, primaryPostFacility.getCoord());
+				activity = (Activity) populationFactory.createActivityFromCoord(activityType, primaryPostFacility.getCoord());
 				activity.setFacilityId(primaryPostFacility.getId());
 				activity.setLinkId(primaryPostFacility.getLinkId());
 				activity.setStartTime(time);
@@ -487,15 +494,16 @@ public class PopulationCreator {
 				time = time + emme2Person.DUR_1_AFT;
 			}
 
-			leg = (LegImpl) populationFactory.createLeg(transportMode);
+			leg = (Leg) populationFactory.createLeg(transportMode);
 			leg.setDepartureTime(time);
 			leg.setTravelTime(0.0);
-			leg.setArrivalTime(time);
+			final double arrTime1 = time;
+			leg.setTravelTime( arrTime1 - leg.getDepartureTime() );
 //			route = routeFactory.createRoute(previousActivityLinkId, homeLinkId);
 //			leg.setRoute(route);
 			plan.addLeg(leg);
 
-			activity = (ActivityImpl) populationFactory.createActivityFromCoord("home", homeFacility.getCoord());
+			activity = (Activity) populationFactory.createActivityFromCoord("home", homeFacility.getCoord());
 			activity.setFacilityId(homeFacility.getId());
 			activity.setLinkId(homeFacility.getLinkId());
 			activity.setStartTime(time);
@@ -529,10 +537,11 @@ public class PopulationCreator {
 			if (secondaryPreStop) {
 				ActivityFacility secondaryPreFacility = selectFacilityByZone(secondaryPreStopActivityZone, facilitiesToZoneMap);
 
-				leg = (LegImpl) populationFactory.createLeg(transportMode);
+				leg = (Leg) populationFactory.createLeg(transportMode);
 				leg.setDepartureTime(time);
 				leg.setTravelTime(0.0);
-				leg.setArrivalTime(time);
+				final double arrTime = time;
+				leg.setTravelTime( arrTime - leg.getDepartureTime() );
 //				route = routeFactory.createRoute(previousActivityLinkId, secondaryPreLinkId);
 //				leg.setRoute(route);
 				plan.addLeg(leg);
@@ -544,7 +553,7 @@ public class PopulationCreator {
 				activityType = getActivityTypeString(secondaryPreStopActivityType, secondaryPreFacility);
 				if (activityType == null) return false;
 				
-				activity = (ActivityImpl) populationFactory.createActivityFromCoord(activityType, secondaryPreFacility.getCoord());
+				activity = (Activity) populationFactory.createActivityFromCoord(activityType, secondaryPreFacility.getCoord());
 				activity.setFacilityId(secondaryPreFacility.getId());
 				activity.setLinkId(secondaryPreFacility.getLinkId());
 				activity.setStartTime(time);
@@ -562,10 +571,11 @@ public class PopulationCreator {
 			 */
 			ActivityFacility secondaryFacility = selectFacilityByZone(secondaryMainActivityZone, facilitiesToZoneMap);
 
-			leg = (LegImpl) populationFactory.createLeg(transportMode);
+			leg = (Leg) populationFactory.createLeg(transportMode);
 			leg.setDepartureTime(time);
 			leg.setTravelTime(0.0);
-			leg.setArrivalTime(time);
+			final double arrTime = time;
+			leg.setTravelTime( arrTime - leg.getDepartureTime() );
 //			route = routeFactory.createRoute(previousActivityLinkId, secondaryLinkId);
 //			leg.setRoute(route);
 			plan.addLeg(leg);
@@ -577,7 +587,7 @@ public class PopulationCreator {
 			activityType = getActivityTypeString(secondaryMainActivityType, secondaryFacility);
 			if (activityType == null) return false;
 			
-			activity = (ActivityImpl) populationFactory.createActivityFromCoord(activityType, secondaryFacility.getCoord());
+			activity = (Activity) populationFactory.createActivityFromCoord(activityType, secondaryFacility.getCoord());
 			activity.setFacilityId(secondaryFacility.getId());
 			activity.setLinkId(secondaryFacility.getLinkId());
 			activity.setStartTime(time);
@@ -595,10 +605,11 @@ public class PopulationCreator {
 			if (secondaryPostStop) {
 				ActivityFacility secondaryPostFacility = selectFacilityByZone(secondaryPostStopActivityZone, facilitiesToZoneMap);
 
-				leg = (LegImpl) populationFactory.createLeg(transportMode);
+				leg = (Leg) populationFactory.createLeg(transportMode);
 				leg.setDepartureTime(time);
 				leg.setTravelTime(0.0);
-				leg.setArrivalTime(time);
+				final double arrTime1 = time;
+				leg.setTravelTime( arrTime1 - leg.getDepartureTime() );
 //				route = routeFactory.createRoute(previousActivityLinkId, secondaryPostLinkId);
 //				leg.setRoute(route);
 				plan.addLeg(leg);
@@ -610,7 +621,7 @@ public class PopulationCreator {
 				activityType = getActivityTypeString(secondaryPostStopActivityType, secondaryPostFacility);
 				if (activityType == null) return false;
 				
-				activity = (ActivityImpl) populationFactory.createActivityFromCoord(activityType, secondaryPostFacility.getCoord());
+				activity = (Activity) populationFactory.createActivityFromCoord(activityType, secondaryPostFacility.getCoord());
 				activity.setFacilityId(secondaryPostFacility.getId());
 				activity.setLinkId(secondaryPostFacility.getLinkId());
 				activity.setStartTime(time);
@@ -623,10 +634,11 @@ public class PopulationCreator {
 				time = time + emme2Person.DUR_2_AFT;
 			}
 
-			leg = (LegImpl) populationFactory.createLeg(transportMode);
+			leg = (Leg) populationFactory.createLeg(transportMode);
 			leg.setDepartureTime(time);
 			leg.setTravelTime(0.0);
-			leg.setArrivalTime(time);
+			final double arrTime1 = time;
+			leg.setTravelTime( arrTime1 - leg.getDepartureTime() );
 //			route = routeFactory.createRoute(previousActivityLinkId, homeLinkId);
 //			leg.setRoute(route);
 			plan.addLeg(leg);
@@ -634,7 +646,7 @@ public class PopulationCreator {
 			/*
 			 * It is the last Activity of the plan so we don't set an end time.
 			 */
-			activity = (ActivityImpl) populationFactory.createActivityFromCoord("home", homeFacility.getCoord());
+			activity = (Activity) populationFactory.createActivityFromCoord("home", homeFacility.getCoord());
 			activity.setFacilityId(homeFacility.getId());
 			activity.setLinkId(homeFacility.getLinkId());
 			activity.setStartTime(time);

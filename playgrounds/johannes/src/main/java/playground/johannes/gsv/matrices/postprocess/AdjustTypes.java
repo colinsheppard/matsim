@@ -32,7 +32,6 @@ import org.matsim.core.utils.io.IOUtils;
 import playground.johannes.gsv.matrices.plans2matrix.ReplaceMiscType;
 import playground.johannes.gsv.synPop.mid.PersonCloner;
 import playground.johannes.gsv.synPop.mid.Route2GeoDistance;
-import playground.johannes.studies.matrix2014.analysis.ActTypeDistanceTask;
 import playground.johannes.studies.matrix2014.sim.Simulator;
 import playground.johannes.studies.matrix2014.stats.Histogram;
 import playground.johannes.synpop.data.*;
@@ -89,7 +88,7 @@ public class AdjustTypes {
 
         XMLHandler parser = new XMLHandler(new PlainFactory());
         parser.setValidating(false);
-        parser.parse(args[3]);
+        parser.readFile(args[3]);
         Set<? extends Person> persons = parser.getPersons();
         TaskRunner.run(new Route2GeoDistance(new Simulator.Route2GeoDistFunction()), persons);
         TaskRunner.run(new ReplaceActTypes(), persons);

@@ -22,6 +22,7 @@
 package org.matsim.contrib.signals.data;
 
 import java.io.BufferedWriter;
+import java.io.IOException;
 
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
@@ -37,15 +38,17 @@ import org.matsim.contrib.signals.data.signalsystems.v20.SignalSystemData;
 import org.matsim.contrib.signals.model.Signal;
 import org.matsim.contrib.signals.model.SignalSystem;
 import org.matsim.core.utils.io.IOUtils;
-import org.matsim.lanes.data.v20.Lane;
-import org.matsim.lanes.data.v20.Lanes;
+import org.matsim.lanes.data.Lane;
+import org.matsim.lanes.data.Lanes;
 
 /**
  * Class to write the (x,y,t) signals csv file for via. 
  * 
+ * @deprecated use SignalEvents2ViaCSVWriter instead
+ * 
  * @author tthunig
- *
  */
+@Deprecated
 public class SignalsViaCSVWriter {
 
 	private static final Logger log = Logger.getLogger(SignalsViaCSVWriter.class);
@@ -100,21 +103,12 @@ public class SignalsViaCSVWriter {
 							SignalData signal = signalSystem.getSignalData().get(signalId);
 							Coord signalCoord = calculateSignalCoordinate(signalSystem.getId(), signal.getId());
 
-							// create lines for every signal state switch during
-							// the qsim running time
-							Double time = signalPlan.getStartTime();
-							if (time == null) {
-								// use start time of the simulation
-								time = scenario.getConfig().qsim().getStartTime();
-							}
-//							log.info("Writing signal states for signal " + signal.getId() + " for the whole simulation time ...");
-							Double endTime = signalPlan.getEndTime();
-							if (endTime == null) {
-								// use end time of the simulation
-								endTime = scenario.getConfig().qsim().getEndTime();
-							}
+							log.info("Writing signal states for signal " + signal.getId() + " for the whole signal plan time ...");
+							// create lines for every signal state switch inside the signal plan time
+							double time = signalPlan.getStartTime();
+							double endTime = signalPlan.getEndTime();
 							// handle case start time = end time
-							if (time.equals(endTime)){
+							if (time == endTime){
 								// a whole day is meant
 								endTime += 24*3600;
 							}
@@ -138,7 +132,7 @@ public class SignalsViaCSVWriter {
 			signalsCSVWriter.close();
 			log.info("... done!");
 		}
-		catch(Exception e){ 
+		catch(IOException e){ 
 			e.printStackTrace(); 
 		}
 	}

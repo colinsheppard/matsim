@@ -25,7 +25,7 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
-import org.matsim.core.network.LinkImpl;
+import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.utils.collections.Tuple;
 import org.matsim.core.utils.geometry.CoordUtils;
 
@@ -91,6 +91,7 @@ public class NetworkExpandNode {
 	 * offset <code>e</code>.</li>
 	 * </ul>
 	 * <pre>
+	 * {@code
 	 * <-----12------         <----21-------
 	 *
 	 *            x-0 o     o 1-5
@@ -104,10 +105,12 @@ public class NetworkExpandNode {
 	 *               |       |
 	 *               |       |
 	 *               v       |
+	 * }
 	 * </pre>
 	 * </li>
 	 * <li>connects each incident link of the given node with the corresponding <code>new_node</code>
 	 * <pre>
+	 * {@code
 	 * <-----12------ o     o <----21-------
 	 *                   O
 	 * ------11-----> o     o -----22------>
@@ -118,10 +121,12 @@ public class NetworkExpandNode {
 	 *                 |   |
 	 *                 |   |
 	 *                 v   |
+	 * }
 	 * </pre>
 	 * </li>
 	 * <li>removes the given node from the network
 	 * <pre>
+	 * {@code
 	 * <-----12------ o     o <----21-------
 	 *
 	 * ------11-----> o     o -----22------>
@@ -132,6 +137,7 @@ public class NetworkExpandNode {
 	 *                 |   |
 	 *                 |   |
 	 *                 v   |
+	 * }
 	 * </pre>
 	 * </li>
 	 * <li>inter-connects the <code>new_node</code>s with new links as defined in the
@@ -142,6 +148,7 @@ public class NetworkExpandNode {
 	 * <li>freespeed, capacity, permlanes, origId and type are equals to the attributes of the fromLink.</li>
 	 * </ul>
 	 * <pre>
+	 * {@code
 	 * <-----12------ o <--21-0-- o <----21-------
 	 *
 	 * ------11-----> o --11-1--> o -----22------>
@@ -156,6 +163,7 @@ public class NetworkExpandNode {
 	 *                    |   |
 	 *                    |   |
 	 *                    v   |
+	 * }
 	 * </pre>
 	 * </li>
 	 * </ol>
@@ -227,9 +235,9 @@ public class NetworkExpandNode {
 			l.setCapacity(inlink.getCapacity());
 			l.setNumberOfLanes(inlink.getNumberOfLanes());
 			l.setAllowedModes(inlink.getAllowedModes());
-			if (inlink instanceof LinkImpl) {
-				((LinkImpl) l).setOrigId(((LinkImpl) inlink).getOrigId());
-				((LinkImpl) l).setType(((LinkImpl) inlink).getType());
+			if (inlink instanceof Link) {
+				NetworkUtils.setOrigId( ((Link) l), NetworkUtils.getOrigId( ((Link) inlink) ) ) ;
+				NetworkUtils.setType( ((Link) l), NetworkUtils.getType(((Link) inlink)));
 			}
 			network.addLink(l);
 		}
@@ -256,9 +264,9 @@ public class NetworkExpandNode {
 			l.setCapacity(outlink.getCapacity());
 			l.setNumberOfLanes(outlink.getNumberOfLanes());
 			l.setAllowedModes(outlink.getAllowedModes());
-			if (outlink instanceof LinkImpl) {
-				((LinkImpl) l).setOrigId(((LinkImpl) outlink).getOrigId());
-				((LinkImpl) l).setType(((LinkImpl) outlink).getType());
+			if (outlink instanceof Link) {
+				NetworkUtils.setOrigId( ((Link) l), NetworkUtils.getOrigId( ((Link) outlink) ) ) ;
+				NetworkUtils.setType( ((Link) l), NetworkUtils.getType(((Link) outlink)));
 			}
 			network.addLink(l);
 		}
@@ -284,9 +292,9 @@ public class NetworkExpandNode {
 			} else {
 				l.setAllowedModes(turn.getModes());
 			}
-			if (fromLink instanceof LinkImpl) {
-				((LinkImpl) l).setOrigId(((LinkImpl) fromLink).getOrigId());
-				((LinkImpl) l).setType(((LinkImpl) fromLink).getType());
+			if (fromLink instanceof Link) {
+				NetworkUtils.setOrigId( ((Link) l), NetworkUtils.getOrigId( ((Link) fromLink) ) ) ;
+				NetworkUtils.setType( ((Link) l), NetworkUtils.getType(((Link) fromLink)));
 			}
 			network.addLink(l);
 			newLinks.add(l);

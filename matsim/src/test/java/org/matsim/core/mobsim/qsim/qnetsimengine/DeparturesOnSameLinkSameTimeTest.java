@@ -33,6 +33,7 @@ import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.events.LinkLeaveEvent;
 import org.matsim.api.core.v01.events.handler.LinkLeaveEventHandler;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Leg;
@@ -42,6 +43,7 @@ import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.config.groups.QSimConfigGroup.VehiclesSource;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.mobsim.qsim.ActivityEngine;
 import org.matsim.core.mobsim.qsim.QSim;
@@ -49,7 +51,7 @@ import org.matsim.core.mobsim.qsim.TeleportationEngine;
 import org.matsim.core.mobsim.qsim.agents.AgentFactory;
 import org.matsim.core.mobsim.qsim.agents.DefaultAgentFactory;
 import org.matsim.core.mobsim.qsim.agents.PopulationAgentSource;
-import org.matsim.core.network.NetworkImpl;
+import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.population.routes.LinkNetworkRouteFactory;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
@@ -72,13 +74,13 @@ public class DeparturesOnSameLinkSameTimeTest {
 	@Test 
 	public void test4LinkEnterTimeOfCarAndBike () {
 		
-		Id<Person> firstAgent = Id.createPersonId(1);
-		Id<Person> secondAgent = Id.createPersonId(2);
+		Id<Vehicle> firstAgent = Id.createVehicleId(1);
+		Id<Vehicle> secondAgent = Id.createVehicleId(2);
 		
 		Id<Link> departureLink = Id.createLinkId(1);
 		
-		Map<Id<Person>,Map<Id<Link>, Double>> motorbikeLinkLeaveTime = getLinkEnterTime("motorbike",3600);
-		Map<Id<Person>,Map<Id<Link>, Double>> carLinkLeaveTime = getLinkEnterTime(TransportMode.car,3600);
+		Map<Id<Vehicle>,Map<Id<Link>, Double>> motorbikeLinkLeaveTime = getLinkEnterTime("motorbike",3600);
+		Map<Id<Vehicle>,Map<Id<Link>, Double>> carLinkLeaveTime = getLinkEnterTime(TransportMode.car,3600);
 		
 		double diff_carAgents_departureLink_LeaveTimes = carLinkLeaveTime.get(secondAgent).get(departureLink) - carLinkLeaveTime.get(firstAgent).get(departureLink);
 		Assert.assertEquals("Both car agents should leave at the gap of 1 sec.", 1., Math.abs(diff_carAgents_departureLink_LeaveTimes), MatsimTestUtils.EPSILON );
@@ -93,13 +95,13 @@ public class DeparturesOnSameLinkSameTimeTest {
 		Assert.assertEquals("Both car agents should leave at the same time", 0., diff_carAgents_departureLink_LeaveTimes, MatsimTestUtils.EPSILON );
 	}
 
-	private Map<Id<Person>,Map<Id<Link>, Double>> getLinkEnterTime (String travelMode, double departureLinkCapacity){
+	private Map<Id<Vehicle>,Map<Id<Link>, Double>> getLinkEnterTime (String travelMode, double departureLinkCapacity){
 		
 		PseudoInputs inputs = new PseudoInputs(travelMode);
 		inputs.createNetwork(departureLinkCapacity);
 		inputs.createPopulation();
 
-		final Map<Id<Person>,Map<Id<Link>, Double>> linkLeaveTimes = new HashMap<>() ;
+		final Map<Id<Vehicle>,Map<Id<Link>, Double>> linkLeaveTimes = new HashMap<>() ;
 
 		EventsManager events = EventsUtils.createEventsManager();
 		events.addHandler(new LinkLeaveEventHandler() {
@@ -112,19 +114,17 @@ public class DeparturesOnSameLinkSameTimeTest {
 			@Override
 			public void handleEvent(LinkLeaveEvent event) {
 			
-				Id<Person> personId = Id.createPersonId(event.getVehicleId());
+				if(linkLeaveTimes.containsKey(event.getVehicleId())){
 				
-				if(linkLeaveTimes.containsKey(personId)){
-				
-					Map<Id<Link>, Double> times = linkLeaveTimes.get(personId);
+					Map<Id<Link>, Double> times = linkLeaveTimes.get(event.getVehicleId());
 					times.put(event.getLinkId(), event.getTime());
-					linkLeaveTimes.put(personId, times);
+					linkLeaveTimes.put(event.getVehicleId(), times);
 				
 				} else {
 					
 					Map<Id<Link>, Double> times = new HashMap<Id<Link>, Double>();
 					times.put(event.getLinkId(), event.getTime());
-					linkLeaveTimes.put(personId, times);
+					linkLeaveTimes.put(event.getVehicleId(), times);
 					
 				}
 			}
@@ -163,7 +163,7 @@ public class DeparturesOnSameLinkSameTimeTest {
 
 		Scenario scenario;
 		Config config;
-		NetworkImpl network;
+		Network network;
 		Population population;
 		Link link1;
 		Link link2;
@@ -174,25 +174,31 @@ public class DeparturesOnSameLinkSameTimeTest {
 			config=ConfigUtils.createConfig();
 			this.scenario = ScenarioUtils.loadScenario(config);
 			config.qsim().setMainModes(Arrays.asList(travelMode));
-			network =  (NetworkImpl) this.scenario.getNetwork();
+			network =  (Network) this.scenario.getNetwork();
 			population = this.scenario.getPopulation();
 		}
 
 		private void createNetwork(double departureLinkCapacity){
 
-			Node node1 = network.createAndAddNode(Id.createNodeId("1"), new Coord((double) 0, (double) 0)) ;
-			Node node2 = network.createAndAddNode(Id.createNodeId("2"), new Coord((double) 100, (double) 10));
+			Node node1 = NetworkUtils.createAndAddNode(network, Id.createNodeId("1"), new Coord((double) 0, (double) 0)) ;
+			Node node2 = NetworkUtils.createAndAddNode(network, Id.createNodeId("2"), new Coord((double) 100, (double) 10));
 			double y = -10;
-			Node node3 = network.createAndAddNode(Id.createNodeId("3"), new Coord((double) 300, y));
+			Node node3 = NetworkUtils.createAndAddNode(network, Id.createNodeId("3"), new Coord((double) 300, y));
+			final Node fromNode = node1;
+			final Node toNode = node2;
+			final double capacity = departureLinkCapacity;
 
-			link1 = network.createAndAddLink(Id.createLinkId(String.valueOf("1")), node1, node2,1000.0,20.0,departureLinkCapacity,1,null,"7");
-			link2 = network.createAndAddLink(Id.createLinkId(String.valueOf("2")), node2, node3,1000.0,20.0,3600,1,null,"7");
+			link1 = NetworkUtils.createAndAddLink(network,Id.createLinkId(String.valueOf("1")), fromNode, toNode, 1000.0, 20.0, capacity, (double) 1, null, "7");
+			final Node fromNode1 = node2;
+			final Node toNode1 = node3;
+			link2 = NetworkUtils.createAndAddLink(network,Id.createLinkId(String.valueOf("2")), fromNode1, toNode1, 1000.0, 20.0, (double) 3600, (double) 1, null, "7");
 		}
 
 		private void createPopulation(){
 
 			// Vehicles info			
-			scenario.getConfig().qsim().setUseDefaultVehicles(false);
+//			scenario.getConfig().qsim().setUseDefaultVehicles(false);
+			scenario.getConfig().qsim().setVehiclesSource( VehiclesSource.fromVehiclesData ) ;
 			scenario.getConfig().qsim().setUsingFastCapacityUpdate(true);
 
 			VehicleType vt = VehicleUtils.getFactory().createVehicleType(Id.create(travelMode, VehicleType.class));

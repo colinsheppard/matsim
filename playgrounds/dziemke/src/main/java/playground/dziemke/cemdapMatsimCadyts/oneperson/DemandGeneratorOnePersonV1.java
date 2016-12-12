@@ -1,4 +1,21 @@
-package playground.dziemke.cemdapMatsimCadyts.oneperson;
+/* *********************************************************************** *
+ * project: org.matsim.*												   *
+ *                                                                         *
+ * *********************************************************************** *
+ *                                                                         *
+ * copyright       : (C) 2008 by the members listed in the COPYING,        *
+ *                   LICENSE and WARRANTY file.                            *
+ * email           : info at matsim dot org                                *
+ *                                                                         *
+ * *********************************************************************** *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *   See also COPYING, LICENSE and WARRANTY file                           *
+ *                                                                         *
+ * *********************************************************************** */package playground.dziemke.cemdapMatsimCadyts.oneperson;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -19,6 +36,9 @@ import org.opengis.feature.simple.SimpleFeature;
 import playground.dziemke.cemdapMatsimCadyts.CommuterFileReader;
 import playground.dziemke.cemdapMatsimCadyts.CommuterRelation;
 
+/**
+ * @author dziemke
+ */
 public class DemandGeneratorOnePersonV1 {
 	private static final Logger log = Logger.getLogger(DemandGeneratorOnePersonV1.class);
   
@@ -64,7 +84,7 @@ public class DemandGeneratorOnePersonV1 {
 	
 	// create storage objects
 	Map<Integer, String> lors = new HashMap<Integer, String>();
-	Map<Integer, Household> households = new HashMap<Integer, Household>();
+	Map<Integer, SimpleHousehold> households = new HashMap<Integer, SimpleHousehold>();
 	Map<Integer, Map<String, SimplePerson>> mapOfPersonsMaps = new HashMap<Integer, Map<String, SimplePerson>>();
 	for (int i=1; i<=numberOfPlansPerPerson; i++) {
 		Map<String, SimplePerson> persons = new HashMap<String, SimplePerson>();
@@ -111,7 +131,7 @@ public class DemandGeneratorOnePersonV1 {
 			} else {
 				homeTSZLocation = source;
 			}
-			Household household = new Household(householdId, homeTSZLocation);
+			SimpleHousehold household = new SimpleHousehold(householdId, homeTSZLocation);
 			households.put(householdId, household);
 			
 			// create persons
@@ -221,7 +241,7 @@ public class DemandGeneratorOnePersonV1 {
     }
 	
 
-	public static void writeToHouseholdsFile(Map <String, SimplePerson> persons, Map<Integer, Household> households, String fileName) {
+	public static void writeToHouseholdsFile(Map <String, SimplePerson> persons, Map<Integer, SimpleHousehold> households, String fileName) {
 		BufferedWriter bufferedWriterHouseholds = null;
 		
 		try {

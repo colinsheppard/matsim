@@ -17,8 +17,7 @@ import org.matsim.api.core.v01.population.Population;
 import org.matsim.api.core.v01.population.Route;
 import org.matsim.contrib.pseudosimulation.distributed.plans.PlanGenome;
 import org.matsim.contrib.pseudosimulation.distributed.scoring.PlanScoreComponent;
-import org.matsim.core.population.ActivityImpl;
-import org.matsim.core.population.LegImpl;
+import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.GenericRouteImpl;
 import org.matsim.core.population.routes.LinkNetworkRouteImpl;
 import org.matsim.core.population.routes.NetworkRoute;
@@ -40,6 +39,7 @@ class PlanSerializable implements Serializable {
     private final String type;
     double pSimScore;
     private String genome = "";
+
     public PlanSerializable(Plan plan) {
         planElements = new ArrayList<>();
         for (PlanElement planElement : plan.getPlanElements())
@@ -121,7 +121,7 @@ class PlanSerializable implements Serializable {
         }
 
         public Activity getActivity() {
-            ActivityImpl activity = new ActivityImpl(type, coord.getCoord(), linkIdString == null ? null : Id.createLinkId(linkIdString));
+            Activity activity = PopulationUtils.createActivityFromCoordAndLinkId(type, coord.getCoord(), linkIdString == null ? null : Id.createLinkId(linkIdString));
             activity.setEndTime(endTime);
             activity.setFacilityId(facIdString == null ? null : Id.create(facIdString, ActivityFacility.class));
             activity.setMaximumDuration(maximumDuration);
@@ -140,15 +140,20 @@ class PlanSerializable implements Serializable {
             departureTime = leg.getDepartureTime();
             mode = leg.getMode();
             travelTime = leg.getTravelTime();
-            if (mode.equals(TransportMode.pt))
-                System.out.print("");
-            route = new GenericRouteSerializable(leg.getRoute());
+
+            if (leg.getRoute() != null) {
+                if (leg.getMode().equals(TransportMode.car))
+                    route = new NetworkRouteSerializable((NetworkRoute) leg.getRoute());
+                else
+                    route = new GenericRouteSerializable(leg.getRoute());
+
+            }
 
 
         }
 
         public Leg getLeg() {
-            Leg leg = new LegImpl(mode);
+            Leg leg = PopulationUtils.createLeg(mode);
             leg.setDepartureTime(departureTime);
             leg.setTravelTime(travelTime);
             leg.setRoute(route == null ? null : route.getRoute(mode));
@@ -171,7 +176,7 @@ class PlanSerializable implements Serializable {
         }
     }
 
-    class LinkNetworkRouteSerializable implements RouteSerializable {
+    class NetworkRouteSerializable implements RouteSerializable {
 
         private final double distance;
         private final String endLinkIdString;
@@ -181,7 +186,7 @@ class PlanSerializable implements Serializable {
         private final String vehicleIdString;
         private final List<String> linkIdStrings;
 
-        public LinkNetworkRouteSerializable(NetworkRoute route) {
+        public NetworkRouteSerializable(NetworkRoute route) {
             distance = route.getDistance();
             endLinkIdString = route.getEndLinkId().toString();
             startLinkIdString = route.getStartLinkId().toString();

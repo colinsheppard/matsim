@@ -25,29 +25,34 @@ package org.matsim.roadpricing;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.core.config.Config;
+import org.matsim.core.population.algorithms.PlanAlgorithm;
 import org.matsim.core.replanning.PlanStrategy;
 import org.matsim.core.replanning.PlanStrategyImpl;
 import org.matsim.core.replanning.modules.AbstractMultithreadedModule;
 import org.matsim.core.replanning.selectors.RandomPlanSelector;
-import org.matsim.population.algorithms.PlanAlgorithm;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-public class ReRouteAreaToll implements Provider<PlanStrategy> {
+ class ReRouteAreaToll implements Provider<PlanStrategy> {
 
-    @Inject Config config;
-    @Inject Provider<PlansCalcRouteWithTollOrNot> factory;
+	private final Config config;
+	private final Provider<PlansCalcRouteWithTollOrNot> factory;
 
-    @Override
-    public PlanStrategy get() {
-        PlanStrategyImpl.Builder builder = new PlanStrategyImpl.Builder(new RandomPlanSelector<Plan, Person>());
-        builder.addStrategyModule(new AbstractMultithreadedModule(config.global()) {
-            @Override
-            public PlanAlgorithm getPlanAlgoInstance() {
-                return factory.get();
-            }
-        });
-        return builder.build();
-    }
+	@Inject ReRouteAreaToll( Config config, Provider<PlansCalcRouteWithTollOrNot> factory ) {
+		this.config = config;
+		this.factory = factory;
+	}
+
+	@Override
+	public PlanStrategy get() {
+		PlanStrategyImpl.Builder builder = new PlanStrategyImpl.Builder(new RandomPlanSelector<Plan, Person>());
+		builder.addStrategyModule(new AbstractMultithreadedModule(config.global()) {
+			@Override
+			public PlanAlgorithm getPlanAlgoInstance() {
+				return factory.get();
+			}
+		});
+		return builder.build();
+	}
 }

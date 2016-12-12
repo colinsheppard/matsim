@@ -31,7 +31,6 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.ConfigWriter;
 import org.matsim.core.config.ReflectiveConfigGroup;
 import org.matsim.core.network.algorithms.NetworkTransform;
-import org.matsim.core.population.ActivityImpl;
 import org.matsim.core.router.EmptyStageActivityTypes;
 import org.matsim.core.router.TripStructureUtils;
 import org.matsim.core.scenario.ScenarioUtils;
@@ -48,7 +47,6 @@ import playground.ivt.utils.MoreIOUtils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 
 /**
  * @author thibautd
@@ -127,7 +125,7 @@ public class TransformCoordinatesOfScenario {
 		for ( Person person : population.getPersons().values() ) {
 			for ( Plan plan : person.getPlans() ) {
 				for ( Activity activity : TripStructureUtils.getActivities( plan , EmptyStageActivityTypes.INSTANCE ) ) {
-					(( ActivityImpl) activity).setCoord( transformation.transform( activity.getCoord() ) );
+					(( Activity) activity).setCoord( transformation.transform( activity.getCoord() ) );
 				}
 			}
 		}

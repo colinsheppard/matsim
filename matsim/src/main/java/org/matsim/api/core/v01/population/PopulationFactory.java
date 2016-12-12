@@ -23,6 +23,7 @@ import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.core.api.internal.MatsimFactory;
+import org.matsim.core.population.routes.RouteFactories;
 
 /**
  * @author dgrether
@@ -38,7 +39,7 @@ public interface PopulationFactory extends MatsimFactory {
 	 * @param actType - the type of the activity, which needs to correspond to some string in the config file
 	 * @param coord - the coordinates of the activity
 	 * @return the activity
-	 * <p/>
+	 * <p></p>
 	 * It might in fact make sense to add a creational method that takes coord <i>and</i> link id.  kai, aug'10
 	 */
 	Activity createActivityFromCoord(String actType, Coord coord);
@@ -53,6 +54,6 @@ public interface PopulationFactory extends MatsimFactory {
 
 	Leg createLeg(String legMode);
 
-	<R extends Route> R createRoute(Class<R> routeType, Id<Link> startLinkId, Id<Link> endLinkId);
+	RouteFactories getRouteFactories();
 
 }

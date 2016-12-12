@@ -29,7 +29,6 @@ import org.matsim.api.core.v01.network.NetworkWriter;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.network.NetworkImpl;
 import org.matsim.core.network.algorithms.NetworkCleaner;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.io.IOUtils;
@@ -40,15 +39,15 @@ import java.io.IOException;
 
 /**
  * Translates emme networks into matsim networks.
- * <p/>
+ * <p></p>
  * Uses the "emme network export" result as input, NOT the GIS export.
- * <p/>
+ * <p></p>
  * A serious problem is that there is not enough info in the headers of the emme files:
  * (column counting starts at 0!!!)
  * - link "length" (column # 3) is in arbitrary units, connected to rest of system only through freespeed value
  * - Column # 8-10 are user-defined BUT contain freespeed, capacity, ... in arbitrary order and units
  *   (connected to rest of system through user-defined volume-delay functions)
- * <p/>
+ * <p></p>
  * Keyword(s): emme/2
  * 
  * @author nagel
@@ -64,8 +63,8 @@ public class NetworkEmme2Matsim {
 
 	public static void readNetwork( Scenario sc ) {
 		Network network = sc.getNetwork() ;
-		((NetworkImpl) network).setCapacityPeriod(3600.) ;
-		((NetworkImpl) network).setEffectiveLaneWidth(3.75) ;
+		((Network) network).setCapacityPeriod(3600.) ;
+		((Network) network).setEffectiveLaneWidth(3.75) ;
 //		network.setEffectiveCellSize(7.5) ;
 
 		// read emme3 network

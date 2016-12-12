@@ -20,6 +20,7 @@
 package org.matsim.contrib.taxi.benchmark;
 
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.contrib.dvrp.data.file.VehicleReader;
 import org.matsim.contrib.dynagent.run.DynQSimModule;
 import org.matsim.contrib.taxi.data.TaxiData;
@@ -36,7 +37,7 @@ import org.matsim.core.scenario.ScenarioUtils.ScenarioBuilder;
  * times are deterministic. To simulate this property, we remove (1) all other traffic, and (2) link
  * capacity constraints (e.g. by increasing the capacities by 100+ times), as a result all vehicles
  * move with the free-flow speed (which is the effective speed).
- * <p/>
+ * <p></p>
  * To model the impact of traffic, we can use a time-variant network, where we specify different
  * free-flow speeds for each link over time. The default approach is to specify free-flow speeds in
  * each time interval (usually 15 minutes).
@@ -45,10 +46,8 @@ public class RunTaxiBenchmark
 {
     public static void run(String configFile, int runs)
     {
-        final TaxiConfigGroup taxiCfg = new TaxiConfigGroup();
-        Config config = ConfigUtils.loadConfig(configFile, taxiCfg);
+        Config config = ConfigUtils.loadConfig(configFile, new TaxiConfigGroup());
         createControler(config, runs).run();
-
     }
 
 
@@ -60,19 +59,25 @@ public class RunTaxiBenchmark
 
         Scenario scenario = loadBenchmarkScenario(config, 15 * 60, 30 * 3600);
         final TaxiData taxiData = new TaxiData();
-        new VehicleReader(scenario.getNetwork(), taxiData).parse(taxiCfg.getTaxisFile());
+        new VehicleReader(scenario.getNetwork(), taxiData).readFile(taxiCfg.getTaxisFile());
+        return createControler(scenario, taxiData, runs);
+    }
 
-        config.controler().setLastIteration(runs - 1);
+
+    public static Controler createControler(Scenario scenario, TaxiData taxiData, int runs)
+    {
+        scenario.getConfig().controler().setLastIteration(runs - 1);
+
         Controler controler = new Controler(scenario);
         controler.setModules(new TaxiBenchmarkControlerModule());
-        controler.addOverridingModule(new TaxiModule(taxiData, taxiCfg));
+        controler.addOverridingModule(new TaxiModule(taxiData));
         controler.addOverridingModule(new DynQSimModule<>(TaxiQSimProvider.class));
 
         controler.addOverridingModule(new AbstractModule() {
             @Override
             public void install()
             {
-                addControlerListenerBinding().to(TaxiBenchmarkStats.class);
+                addControlerListenerBinding().to(TaxiBenchmarkStats.class).asEagerSingleton();
             };
         });
 
@@ -80,12 +85,12 @@ public class RunTaxiBenchmark
     }
 
 
-    static Scenario loadBenchmarkScenario(Config config, int interval, int maxTime)
+    public static Scenario loadBenchmarkScenario(Config config, int interval, int maxTime)
     {
         Scenario scenario = new ScenarioBuilder(config).build();
 
         if (config.network().isTimeVariantNetwork()) {
-            ((NetworkImpl)scenario.getNetwork()).getFactory()
+            ((Network)scenario.getNetwork()).getFactory()
                     .setLinkFactory(new FixedIntervalTimeVariantLinkFactory(interval, maxTime));
         }
 

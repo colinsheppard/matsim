@@ -28,7 +28,7 @@ public class MixedTrafficVehiclesUtils {
 	public final static String CAR = TransportMode.car;
 	public final static String BIKE = TransportMode.bike;
 	public final static String WALK = TransportMode.walk;
-	// ZZ_TODO : check PT speed and PCU.
+	// TODO [AA] : check PT speed and PCU.
 	public final static String PT = TransportMode.pt;
 	public final static String MOTORBIKE = "motorbike";
 	public final static String TRUCK = "truck";
@@ -41,6 +41,7 @@ public class MixedTrafficVehiclesUtils {
 		double pcu;
 		switch (travelMode) {
 		case CAR: pcu = 1.0; break;
+		case "bicycle":
 		case BIKE: pcu = 0.25; break;
 		case MOTORBIKE: pcu = 0.25;break;
 		case WALK: pcu = 0.10;break;
@@ -59,6 +60,7 @@ public class MixedTrafficVehiclesUtils {
 		double speed;
 		switch (travelMode) {
 		case CAR: speed = 16.67; break;
+		case "bicycle":
 		case BIKE: speed = 4.17; break;
 		case MOTORBIKE: speed = 16.67;break;
 		case WALK: speed = 1.2;break;

@@ -140,9 +140,9 @@ public class ChoiceGenerationControler implements BeforeMobsimListener {
 		eventsManager.addHandler(waitTimeCalculator);
 		eventsManager.addHandler(stopStopTimeCalculator);
 		eventsManager.addHandler(travelTimeCalculator);
-		reader.parse(eventsFile);
+		reader.readFile(eventsFile);
 
-		pSimFactory = new PSimFactory();
+		pSimFactory = new PSimFactory(controler.getScenario(),eventsManager);
 		controler.addOverridingModule(new AbstractModule() {
 			@Override
 			public void install() {

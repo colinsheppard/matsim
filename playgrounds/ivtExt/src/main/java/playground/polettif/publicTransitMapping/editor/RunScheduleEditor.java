@@ -21,7 +21,7 @@ package playground.polettif.publicTransitMapping.editor;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.network.Network;
-import org.matsim.core.network.NetworkWriter;
+import org.matsim.core.network.io.NetworkWriter;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 import playground.polettif.publicTransitMapping.tools.NetworkTools;
@@ -29,15 +29,22 @@ import playground.polettif.publicTransitMapping.tools.ScheduleTools;
 
 import java.io.IOException;
 
+/**
+ * Executes the BasicScheduleEditor with the given schedule, network and
+ * command file.
+ *
+ * @author polettif
+ */
 public class RunScheduleEditor {
 
 	protected static Logger log = Logger.getLogger(RunScheduleEditor.class);
 
 	/**
+	 * Loads the schedule and network, then executes all commands in the commands csv file.
 	 *
 	 * @param args [0] schedule file
 	 *             [1] network file
-	 *             [2] command file
+	 *             [2] command csv file
 	 *             [3] output schedule file (optional if input file should be overwritten)
 	 *             [4] output network file (optional if input file should be overwritten)
 	 * @throws IOException
@@ -72,10 +79,10 @@ public class RunScheduleEditor {
 
 	private static void setLogLevels() {
 		Logger.getLogger(org.matsim.core.router.Dijkstra.class).setLevel(Level.ERROR); // suppress no route found warnings
-		Logger.getLogger(org.matsim.core.network.NetworkImpl.class).setLevel(Level.WARN);
-		Logger.getLogger(org.matsim.core.network.NodeImpl.class).setLevel(Level.WARN);
-		Logger.getLogger(org.matsim.core.network.LinkImpl.class).setLevel(Level.WARN);
-		Logger.getLogger(org.matsim.core.network.MatsimNetworkReader.class).setLevel(Level.WARN);
+		Logger.getLogger(org.matsim.api.core.v01.network.Network.class).setLevel(Level.WARN);
+		Logger.getLogger(org.matsim.api.core.v01.network.Node.class).setLevel(Level.WARN);
+		Logger.getLogger(org.matsim.api.core.v01.network.Link.class).setLevel(Level.WARN);
+		Logger.getLogger(org.matsim.core.network.io.MatsimNetworkReader.class).setLevel(Level.WARN);
 		Logger.getLogger(org.matsim.core.utils.io.MatsimXmlParser.class).setLevel(Level.WARN);
 		Logger.getLogger(org.matsim.core.utils.io.MatsimFileTypeGuesser.class).setLevel(Level.WARN);
 		Logger.getLogger(org.matsim.core.network.filter.NetworkFilterManager.class).setLevel(Level.WARN);

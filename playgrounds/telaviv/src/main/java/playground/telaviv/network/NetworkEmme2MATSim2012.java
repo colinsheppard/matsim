@@ -43,10 +43,10 @@ import org.matsim.api.core.v01.network.NetworkFactory;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.network.KmlNetworkWriter;
-import org.matsim.core.network.LinkImpl;
-import org.matsim.core.network.NetworkWriter;
+import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.network.algorithms.NetworkCleaner;
+import org.matsim.core.network.io.KmlNetworkWriter;
+import org.matsim.core.network.io.NetworkWriter;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.collections.CollectionUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
@@ -70,15 +70,15 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 /**
  * Translates emme2 networks into matsim networks.
- * <p/>
+ * <p></p>
  * The network data is pre-processed by Shlomo Bekhor in an Excel file. The tables
  * are exported to csv/txt files and parsed.
- * <p/>
+ * <p></p>
  * The provided shp files use WGS84 Coordinates but MATSim need an euclidian System.<br>
  * Therefore two Network files are created:<br>
  * - network_WGS84.xml with WGS84 coordinates<br>
  * - network.xml with ITM coordinates (Israeli Transverse Mercator)<br>
- * <p/>
+ * <p></p>
  * Nodes:<br>
  * index / column / data example: <br>
  * 0	/	NODE_ID	/	100<br>
@@ -86,7 +86,7 @@ import com.vividsolutions.jts.geom.Coordinate;
  * 2	/	COORD_Y	/	192.4970	// // Israeli Coordinates (ITM)<br>
  * 4	/	longitude	/	34.8706600<br>
  * 5	/	latitude	/	32.3254460<br>
- * <p/>
+ * <p></p>
  * Links:<br>
  * index / column / data example:<br>
  * 0	/	From_node	/	103<br>
@@ -114,7 +114,7 @@ import com.vividsolutions.jts.geom.Coordinate;
  * 22	/	truck_vol_AM	/	0<br>
  * 23	/	bus_vol_AM	/	0<br>
  * 24	/	Tot_vol_AM	/	0<br>
- * <p/>
+ * <p></p>
  * 
  * <p>
  * Link types are like:<br>
@@ -433,8 +433,10 @@ public class NetworkEmme2MATSim2012 {
 			link.setFreespeed(freespeed);
 			link.setCapacity(capacity);
 			link.setNumberOfLanes(permlanes);
-			((LinkImpl) link).setType(type);
-			((LinkImpl) link).setOrigId(origId);
+			final String type1 = type;
+			NetworkUtils.setType( ((Link) link), type1);
+			final String id1 = origId;
+			NetworkUtils.setOrigId( ((Link) link), id1 ) ;
 			network.addLink(link);
 			
 			/* 
@@ -471,7 +473,7 @@ public class NetworkEmme2MATSim2012 {
 		for (Link link : network.getLinks().values()) {
 			SimpleFeature ft = factory.createPolyline(
 					new Coordinate [] {MGC.coord2Coordinate(link.getFromNode().getCoord()), MGC.coord2Coordinate(link.getCoord()), MGC.coord2Coordinate(link.getToNode().getCoord())},
-					new Object [] {link.getId().toString(), link.getFromNode().getId().toString(),link.getToNode().getId().toString(),link.getLength(), ((LinkImpl)link).getType()},
+					new Object [] {link.getId().toString(), link.getFromNode().getId().toString(),link.getToNode().getId().toString(),link.getLength(), NetworkUtils.getType(((Link)link))},
 					link.getId().toString()
 					);
 			features.add(ft);

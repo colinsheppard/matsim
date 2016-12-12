@@ -37,7 +37,7 @@ import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.utils.io.IOUtils;
 
 import playground.agarwalamit.analysis.StuckAgentsFilter;
-import playground.agarwalamit.analysis.legMode.distributions.LegModeRouteDistanceDistributionHandler;
+import playground.agarwalamit.analysis.legMode.tripDistance.LegModeRouteDistanceDistributionHandler;
 import playground.agarwalamit.analysis.travelTime.ModalTravelTimeAnalyzer;
 import playground.agarwalamit.utils.LoadMyScenarios;
 import playground.benjamin.scenarios.munich.analysis.filter.PersonFilter;
@@ -62,14 +62,14 @@ public class WriteTotalTimeDistanceStats {
 		try {
 			writer.write("Scenario \t mode \t numberOfLegs \t totalTravelTime \t totalTravelDist \n");
 
-			Set<Id<Person>> stuckPersonsListBAU = new HashSet<Id<Person>>();
-			Set<Id<Person>> stuckPersonsListEI = new HashSet<Id<Person>>();
+			Set<Id<Person>> stuckPersonsListBAU = new HashSet<>();
+			Set<Id<Person>> stuckPersonsListEI = new HashSet<>();
 
 			for(String str:cases){
 				String eventsFile = outputDir+"/"+str+"/ITERS/it.1500/1500.events.xml.gz";
 				String popFile = outputDir+"/"+str+"/output_plans.xml";
 				String networkFile = outputDir+"/"+str+"/output_network.xml.gz";
-				List<String> mainModes = new ArrayList<String>(); mainModes.add("car");
+				List<String> mainModes = new ArrayList<>(); mainModes.add("car");
 
 				Scenario sc = LoadMyScenarios.loadScenarioFromPlansAndNetwork(popFile, networkFile);
 				sc.getConfig().qsim().setMainModes(mainModes); 

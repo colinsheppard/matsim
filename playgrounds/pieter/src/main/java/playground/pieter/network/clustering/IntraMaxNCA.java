@@ -6,15 +6,15 @@ import java.util.TreeMap;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.network.MatsimNetworkReader;
+import org.matsim.core.network.io.MatsimNetworkReader;
 import org.matsim.core.scenario.ScenarioUtils;
 
 
 public class IntraMaxNCA extends NodeClusteringAlgorithm {
 	private static final String ALGORITHMNAME = "IntraMAX";
 	public static int NUMTHREADS=4;
-	private IntraMaxNCA(Network network, String linkMethodName,
-                        String[] argTypes, Object[] args){
+	public IntraMaxNCA(Network network, String linkMethodName,
+					   String[] argTypes, Object[] args){
 		super(ALGORITHMNAME,network,linkMethodName,argTypes,args);
 	}
 	private IntraMaxNCA(Network network){
@@ -79,13 +79,13 @@ public class IntraMaxNCA extends NodeClusteringAlgorithm {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		String fileName = "f:/TEMP/siouxfalls.txt";
+		String fileName = args[1];
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils
 				.createConfig());
 		MatsimNetworkReader nwr = new MatsimNetworkReader(scenario.getNetwork());
 		// nwr.readFile(args[0]);
 //		 nwr.readFile("F:/TEMP/smallnet.xml");
-		nwr.readFile("f:/matsimWorkspace/matsim/examples/siouxfalls/network-wo-dummy-node.xml");
+		nwr.readFile(args[0]);
 //		 nwr.readFile("data/singaporev1/network/planningNetwork_CLEAN.xml");
 		IntraMaxNCA nca = new IntraMaxNCA(scenario.getNetwork(),
 				"getCapacityTimesSpeed", null, null);

@@ -65,5 +65,4 @@ class PathUtils {
 		}
 		return folderStructure ;
 	}
-
 }

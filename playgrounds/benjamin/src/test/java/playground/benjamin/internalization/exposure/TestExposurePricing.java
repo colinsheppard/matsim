@@ -24,8 +24,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -35,6 +33,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.events.LinkLeaveEvent;
 import org.matsim.api.core.v01.events.PersonMoneyEvent;
 import org.matsim.api.core.v01.events.handler.LinkLeaveEventHandler;
@@ -51,14 +50,15 @@ import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.population.routes.LinkNetworkRouteImpl;
+import org.matsim.core.router.costcalculators.RandomizingTimeDistanceTravelDisutilityFactory;
+import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.testcases.MatsimTestUtils;
-
 import playground.benjamin.internalization.EquilTestSetUp;
-import playground.benjamin.scenarios.munich.exposure.EmissionResponsibilityCostModule;
 import playground.benjamin.scenarios.munich.exposure.EmissionResponsibilityTravelDisutilityCalculatorFactory;
-import playground.benjamin.scenarios.munich.exposure.GridTools;
-import playground.benjamin.scenarios.munich.exposure.InternalizeEmissionResponsibilityControlerListener;
-import playground.benjamin.scenarios.munich.exposure.ResponsibilityGridTools;
+import playground.vsp.airPollution.exposure.EmissionResponsibilityCostModule;
+import playground.vsp.airPollution.exposure.GridTools;
+import playground.vsp.airPollution.exposure.InternalizeEmissionResponsibilityControlerListener;
+import playground.vsp.airPollution.exposure.ResponsibilityGridTools;
 
 
 /**
@@ -141,6 +141,7 @@ public class TestExposurePricing {
 		logger.info("Number of time bins are "+ this.noOfTimeBins);
 
 		Scenario sc = minimalControlerSetting();
+		ScenarioUtils.loadScenario(sc); // need to load vehicles. Amit Sep 2016
 
 		sc.getConfig().plansCalcRoute().setInsertingAccessEgressWalk(true); 
 
@@ -162,14 +163,14 @@ public class TestExposurePricing {
 		emissionModule.createLookupTables();
 		emissionModule.createEmissionHandler();
 
-		GridTools gt = new GridTools(sc.getNetwork().getLinks(), xMin, xMax, yMin, yMax);
-		Map<Id<Link>, Integer> links2xCells = gt.mapLinks2Xcells(noOfXCells);
-		Map<Id<Link>, Integer> links2yCells = gt.mapLinks2Ycells(noOfYCells);
+		GridTools gt = new GridTools(sc.getNetwork().getLinks(), xMin, xMax, yMin, yMax, noOfXCells, noOfYCells);
+//		Map<Id<Link>, Integer> links2xCells = gt.mapLinks2Xcells(noOfXCells);
+//		Map<Id<Link>, Integer> links2yCells = gt.mapLinks2Ycells(noOfYCells);
 
 		Double timeBinSize = new Double (controler.getScenario().getConfig().qsim().getEndTime() / this.noOfTimeBins );
 
-		ResponsibilityGridTools rgt = new ResponsibilityGridTools(timeBinSize, noOfTimeBins, links2xCells, links2yCells, noOfXCells, noOfYCells);
-		EmissionResponsibilityCostModule emissionCostModule = new EmissionResponsibilityCostModule( 1.0, isConsideringCO2Costs, rgt, links2xCells, links2yCells);
+		ResponsibilityGridTools rgt = new ResponsibilityGridTools(timeBinSize, noOfTimeBins, gt);
+		EmissionResponsibilityCostModule emissionCostModule = new EmissionResponsibilityCostModule( 1.0, isConsideringCO2Costs, rgt, gt);
 		final EmissionResponsibilityTravelDisutilityCalculatorFactory emfac = new EmissionResponsibilityTravelDisutilityCalculatorFactory(emissionModule, emissionCostModule,sc.getConfig().planCalcScore());
 
 		controler.addOverridingModule(new AbstractModule() {
@@ -180,7 +181,7 @@ public class TestExposurePricing {
 			}
 		});
 
-		controler.addControlerListener(new InternalizeEmissionResponsibilityControlerListener(emissionModule, emissionCostModule, rgt, links2xCells, links2yCells));
+		controler.addControlerListener(new InternalizeEmissionResponsibilityControlerListener(emissionModule, emissionCostModule, rgt, gt));
 
 		MyPersonMoneyEventHandler personMoneyEventHandler = new MyPersonMoneyEventHandler();
 		controler.getEvents().addHandler(personMoneyEventHandler);
@@ -202,6 +203,7 @@ public class TestExposurePricing {
 		logger.info("Number of time bins are "+ this.noOfTimeBins);
 
 		Scenario sc = minimalControlerSetting();
+		ScenarioUtils.loadScenario(sc); // need to load vehicles. Amit Sep 2016
 		
 		sc.getConfig().plansCalcRoute().setInsertingAccessEgressWalk(false);
 		// yy otherwise, the scenario consumes walk time from activity to link, somewhat modifying the results. kai, jun'16
@@ -224,16 +226,21 @@ public class TestExposurePricing {
 		emissionModule.createLookupTables();
 		emissionModule.createEmissionHandler();
 
-		GridTools gt = new GridTools(sc.getNetwork().getLinks(), xMin, xMax, yMin, yMax);
-		Map<Id<Link>, Integer> links2xCells = gt.mapLinks2Xcells(noOfXCells);
-		Map<Id<Link>, Integer> links2yCells = gt.mapLinks2Ycells(noOfYCells);
+		GridTools gt = new GridTools(sc.getNetwork().getLinks(), xMin, xMax, yMin, yMax, noOfXCells, noOfYCells);
+//		Map<Id<Link>, Integer> links2xCells = gt.mapLinks2Xcells(noOfXCells);
+//		Map<Id<Link>, Integer> links2yCells = gt.mapLinks2Ycells(noOfYCells);
 
 		Double timeBinSize = new Double (controler.getScenario().getConfig().qsim().getEndTime() / this.noOfTimeBins );
 
-		ResponsibilityGridTools rgt = new ResponsibilityGridTools(timeBinSize, noOfTimeBins, links2xCells, links2yCells, noOfXCells, noOfYCells);
-		EmissionResponsibilityCostModule emissionCostModule = new EmissionResponsibilityCostModule( 1.0, isConsideringCO2Costs, rgt, links2xCells, links2yCells);
-		final EmissionResponsibilityTravelDisutilityCalculatorFactory emfac = new EmissionResponsibilityTravelDisutilityCalculatorFactory(emissionModule, emissionCostModule, sc.getConfig().planCalcScore());
-
+		ResponsibilityGridTools rgt = new ResponsibilityGridTools(timeBinSize, noOfTimeBins, gt);
+		EmissionResponsibilityCostModule emissionCostModule = new EmissionResponsibilityCostModule( 1.0, isConsideringCO2Costs, rgt, gt);
+//		final EmissionResponsibilityTravelDisutilityCalculatorFactory emfac = new EmissionResponsibilityTravelDisutilityCalculatorFactory(emissionModule, emissionCostModule, sc.getConfig().planCalcScore());
+        final playground.vsp.airPollution.exposure.EmissionResponsibilityTravelDisutilityCalculatorFactory emfac = new playground.vsp.airPollution.exposure.EmissionResponsibilityTravelDisutilityCalculatorFactory(
+                new RandomizingTimeDistanceTravelDisutilityFactory(TransportMode.car, controler.getConfig().planCalcScore()),
+                emissionModule,
+                emissionCostModule,
+                controler.getConfig().planCalcScore()
+        );
 		controler.addOverridingModule(new AbstractModule() {
 
 			@Override
@@ -242,7 +249,7 @@ public class TestExposurePricing {
 			}
 		});
 
-		controler.addControlerListener(new InternalizeEmissionResponsibilityControlerListener(emissionModule, emissionCostModule, rgt, links2xCells, links2yCells));
+		controler.addControlerListener(new InternalizeEmissionResponsibilityControlerListener(emissionModule, emissionCostModule, rgt, gt));
 
 		MyPersonMoneyEventHandler personMoneyEventHandler = new MyPersonMoneyEventHandler();
 		controler.getEvents().addHandler(personMoneyEventHandler);
@@ -277,7 +284,13 @@ public class TestExposurePricing {
 					}
 				}
 			} else {
-				// TODO: this is completely wrong. Include flat CO2 costs not distributive costs.
+				//flat co2 costs = 0.084623
+				// exposure costs from other pollutants = 0.19278
+				for(PersonMoneyEvent e : personMoneyEventHandler.events) {
+					if(e.getTime() == personMoneyEventHandler.link39LeaveTime) {
+						Assert.assertEquals( "Exposure toll on link 39 from Manual calculation does not match from money event.", df.format( -0.19278 - 0.084623 ), df.format( e.getAmount() ) );
+					}
+				}
 			}
 		} else if(this.noOfTimeBins == 24 ) {
 			/*
@@ -294,11 +307,17 @@ public class TestExposurePricing {
 
 				for (PersonMoneyEvent e : personMoneyEventHandler.events){
 					if (e.getTime() == personMoneyEventHandler.link39LeaveTime) {
-						Assert.assertEquals( "Exposure toll on link 39 from manual calculation does not match from money event.", df.format( -0.193609 ), df.format( e.getAmount() ) );
+						Assert.assertEquals( "Exposure toll on link 39 from manual calculation does not match from money event.", df.format( -0.194013 ), df.format( e.getAmount() ) );
 					}
 				}
 			} else {
-				// TODO: this is completely wrong. Include flat CO2 costs not distributive costs.
+				//flat co2 costs = 0.084623
+				// exposure costs from other pollutants = 0.194013
+				for(PersonMoneyEvent e : personMoneyEventHandler.events) {
+					if(e.getTime() == personMoneyEventHandler.link39LeaveTime) {
+						Assert.assertEquals( "Exposure toll on link 39 from Manual calculation does not match from money event.", df.format( -0.194013 - 0.084623 ), df.format( e.getAmount() ) );
+					}
+				}
 			}
 		}
 	}
@@ -322,7 +341,7 @@ public class TestExposurePricing {
 		
 		
 		EquilTestSetUp equilTestSetUp = new EquilTestSetUp();
-		Scenario sc = equilTestSetUp.createConfig();
+		Scenario sc = equilTestSetUp.createConfigAndReturnScenario();
 		// TODO : I have used link speed as 100/3.6 m/s instead of 100 m/s thus check the difference in the result
 		equilTestSetUp.createNetwork(sc);
 		equilTestSetUp.createActiveAgents(sc);
@@ -331,7 +350,7 @@ public class TestExposurePricing {
 		Config config = sc.getConfig();
 		EmissionsConfigGroup ecg = new EmissionsConfigGroup() ;
 		ecg.setEmissionRoadTypeMappingFile(roadTypeMappingFile);
-		ecg.setEmissionVehicleFile(emissionVehicleFile);
+		config.vehicles().setVehiclesFile(emissionVehicleFile);
 
 		ecg.setAverageWarmEmissionFactorsFile(averageFleetWarmEmissionFactorsFile);
 		ecg.setAverageColdEmissionFactorsFile(averageFleetColdEmissionFactorsFile);
@@ -339,6 +358,7 @@ public class TestExposurePricing {
 		ecg.setUsingDetailedEmissionCalculation(isUsingDetailedEmissionCalculation);
 		ecg.setDetailedWarmEmissionFactorsFile(detailedWarmEmissionFactorsFile);
 		ecg.setDetailedColdEmissionFactorsFile(detailedColdEmissionFactorsFile);
+		ecg.setUsingVehicleTypeIdAsVehicleDescription(true);
 
 		config.addModule(ecg);
 

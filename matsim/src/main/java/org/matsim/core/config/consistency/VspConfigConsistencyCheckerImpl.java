@@ -29,8 +29,10 @@ import org.matsim.api.core.v01.TransportMode;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.groups.ControlerConfigGroup.EventsFileFormat;
 import org.matsim.core.config.groups.PlanCalcScoreConfigGroup.ActivityParams;
+import org.matsim.core.config.groups.PlanCalcScoreConfigGroup.ModeParams;
 import org.matsim.core.config.groups.PlansConfigGroup;
 import org.matsim.core.config.groups.QSimConfigGroup.TrafficDynamics;
+import org.matsim.core.config.groups.QSimConfigGroup.VehiclesSource;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup.VspDefaultsCheckingLevel;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule.DefaultStrategy;
@@ -121,9 +123,7 @@ public final class VspConfigConsistencyCheckerImpl implements ConfigConsistencyC
 			log.log( lvl, "	<param name=\"BrainExpBeta\" value=\"1.0\" />");
 			log.log( lvl, "</module>");
 		}
-		
-		// === planCalcScore:
-		
+				
 		// added apr'15:
 		for ( ActivityParams params : config.planCalcScore().getActivityParams() ) {
 			if ( PtConstants.TRANSIT_ACTIVITY_TYPE.equals( params.getActivityType() ) ) {
@@ -141,12 +141,20 @@ public final class VspConfigConsistencyCheckerImpl implements ConfigConsistencyC
 				throw new RuntimeException("unexpected setting; aborting ... ") ;
 			}
 		}
+		for ( ModeParams params : config.planCalcScore().getModes().values() ) {
+			if ( params.getMonetaryDistanceRate() > 0. ) {
+				problem = true ;
+				System.out.flush() ;
+				log.error("found monetary distance rate for mode " + params.getMode() + " > 0.  You probably want a value < 0 here.\n" ) ;
+			}
+			if ( params.getMonetaryDistanceRate() < -0.01 ) {
+				System.out.flush() ;
+				log.error("found monetary distance rate for mode " + params.getMode() + " < -0.01.  -0.01 per meter means -10 per km.  You probably want to divide your value by 1000." ) ;
+			}
+		}
 		
 		if ( config.planCalcScore().getModes().get(TransportMode.car).getMonetaryDistanceRate() > 0 ) {
 			problem = true ;
-			System.out.flush() ;
-			log.error("found monetary distance cost rate car > 0.  You probably want a value < 0 here.  " +
-					"This is a bug and may be changed eventually.  kai, jun'11") ;
 		}
 		if ( config.planCalcScore().getModes().get(TransportMode.pt).getMonetaryDistanceRate() > 0 ) {
 			problem = true ;
@@ -208,7 +216,12 @@ public final class VspConfigConsistencyCheckerImpl implements ConfigConsistencyC
 			log.log( lvl, "found `plansCalcRoute.insertingAccessEgressWalk==false'; vsp should try out `true' and report. " ) ;
 		}
 		
-		// qsim:
+		// === qsim:
+		
+		// added jun'16
+		if ( config.qsim().getUsePersonIdForMissingVehicleId() ) {
+			log.log( lvl, "found qsim.usePersonIdForMissingVehicleId==true; this is only for backwards compatibility and should rather be set to false") ;
+		}
 		
 		// added feb'16
 		if ( !config.qsim().isUsingTravelTimeCheckInTeleportation() ) {
@@ -222,6 +235,7 @@ public final class VspConfigConsistencyCheckerImpl implements ConfigConsistencyC
 		switch( config.qsim().getTrafficDynamics() ) {
 		case withHoles:
 			break;
+		case queue:
 		default:
 			log.log( lvl,  " found 'qsim.trafficDynamics==" + config.qsim().getTrafficDynamics() + "'; vsp standard is`" 
 					+ TrafficDynamics.withHoles + "'." ) ;
@@ -287,6 +301,25 @@ public final class VspConfigConsistencyCheckerImpl implements ConfigConsistencyC
 				log.log( lvl, "	<param name=\"affectingDuration\" value=\"false\" />");
 				log.log( lvl, "</module>");
 			}
+		}
+		
+		// === interaction between config groups:
+		boolean containsModeChoice = false ;
+		for ( StrategySettings settings : config.strategy().getStrategySettings() ) {
+			if ( settings.getStrategyName().contains("Mode") ) {
+				containsModeChoice = true ;
+			}
+		}
+		
+		// added jun'16
+		if ( config.qsim().getVehiclesSource()==VehiclesSource.fromVehiclesData 
+				&& config.qsim().getUsePersonIdForMissingVehicleId() 
+				&& containsModeChoice 
+				&& config.qsim().getMainModes().size() > 1 ) 
+		{
+			problem = true ;
+			log.log( lvl, "You can't use more than one main (=vehicular) mode while using the agent ID as missing vehicle ID ... "
+					+ "because in this case the person can only have one vehicle and thus cannot switch to a different vehicle type." ) ;
 		}
 
 		// === zzz:

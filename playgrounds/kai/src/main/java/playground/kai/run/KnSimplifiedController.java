@@ -35,6 +35,10 @@ import org.matsim.core.controler.ControlerUtils;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.controler.corelisteners.PlansScoring;
 import org.matsim.core.events.EventsUtils;
+import org.matsim.core.population.algorithms.AbstractPersonAlgorithm;
+import org.matsim.core.population.algorithms.ParallelPersonAlgorithmRunner;
+import org.matsim.core.population.algorithms.PersonPrepareForSim;
+import org.matsim.core.population.algorithms.PlanAlgorithm;
 import org.matsim.core.replanning.PlanStrategy;
 import org.matsim.core.replanning.PlanStrategyImpl;
 import org.matsim.core.replanning.StrategyManager;
@@ -43,10 +47,6 @@ import org.matsim.core.replanning.selectors.ExpBetaPlanChanger;
 import org.matsim.core.replanning.selectors.ExpBetaPlanSelector;
 import org.matsim.core.replanning.selectors.WorstPlanForRemovalSelector;
 import org.matsim.core.trafficmonitoring.TravelTimeCalculator;
-import org.matsim.population.algorithms.AbstractPersonAlgorithm;
-import org.matsim.population.algorithms.ParallelPersonAlgorithmRunner;
-import org.matsim.population.algorithms.PersonPrepareForSim;
-import org.matsim.population.algorithms.PlanAlgorithm;
 
 /**
  * @author nagel
@@ -99,12 +99,12 @@ public class KnSimplifiedController extends AbstractController {
 	 * The order how the listeners are added may be important! As
 	 * dependencies between different listeners exist or listeners may read
 	 * and write to common variables, the order is important. 
-	 * <br/> 
+	 * <br>
 	 * The example given in the old Controler was: The
 	 * RoadPricing-Listener modifies the scoringFunctionFactory, which in
 	 * turn is used by the PlansScoring-Listener. I would argue that such dependencies are not necessary with the
 	 * code as designed her: One could first define the scoring function completely, and then add it where needed. kai, jun'12
-	 * <br/>
+	 * <br>
 	 * IMPORTANT: The execution order is reverse to the order the listeners
 	 * are added to the list.
 	 */

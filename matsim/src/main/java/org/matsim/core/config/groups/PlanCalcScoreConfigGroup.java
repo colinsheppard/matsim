@@ -84,6 +84,11 @@ public final class PlanCalcScoreConfigGroup extends ConfigGroup {
 			this.addActivityParams(params);
 		}
 		{
+			ActivityParams params = new ActivityParams("pt interaction") ; // need this for self-programmed pseudo pt.  kai, nov'16
+			params.setScoringThisActivityAtAll(false);
+			this.addActivityParams(params);
+		}
+		{
 			ActivityParams params = new ActivityParams("bike interaction") ;
 			params.setScoringThisActivityAtAll(false);
 			this.addActivityParams(params);
@@ -777,13 +782,26 @@ public final class PlanCalcScoreConfigGroup extends ConfigGroup {
 		final static String SET_TYPE = "modeParams";
 
 		private static final String MONETARY_DISTANCE_RATE = "monetaryDistanceRate";
+		private static final String MONETARY_DISTANCE_RATE_CMT = "[unit_of_money/m] conversion of distance into money. Normally negative.";
+
 		private static final String MARGINAL_UTILITY_OF_TRAVELING = "marginalUtilityOfTraveling_util_hr";
+
+		private static final String CONSTANT = "constant";
 
 		private String mode = null;
 		private double traveling = -6.0;
 		private double distance = 0.0;
 		private double monetaryDistanceRate = 0.0;
 		private double constant = 0.0;
+		
+//		@Override public String toString() {
+//			String str = super.toString();
+//			str += "[mode=" + mode + "]" ;
+//			str += "[const=" + constant + "]" ;
+//			str += "[beta_trav=" + traveling + "]" ;
+//			str += "[beta_dist=" + distance + "]" ;
+//			return str ;
+//		}
 
 		public ModeParams(final String mode) {
 			super( SET_TYPE );
@@ -801,8 +819,8 @@ public final class PlanCalcScoreConfigGroup extends ConfigGroup {
 					"of the opportunity cost of time");
 			map.put( "marginalUtilityOfDistance_util_m", "[utils/m] utility of walking per m, normally negative.  this is " +
 					"on top of the time (dis)utility.") ;
-			map.put(MONETARY_DISTANCE_RATE, "[unit_of_money/m] conversion of distance into money. Normally negative." ) ;
-			map.put("constant",  "[utils] alternative-specific constant.  no guarantee that this is used anywhere. " +
+			map.put(MONETARY_DISTANCE_RATE, MONETARY_DISTANCE_RATE_CMT ) ;
+			map.put(CONSTANT,  "[utils] alternative-specific constant.  no guarantee that this is used anywhere. " +
 					"default=0 to be backwards compatible for the time being" ) ;
 			return map;
 		}
@@ -856,6 +874,9 @@ public final class PlanCalcScoreConfigGroup extends ConfigGroup {
 			return this.monetaryDistanceRate;
 		}
 
+		/**
+		 * @param monetaryDistanceRate -- {@value #MONETARY_DISTANCE_RATE_CMT}
+		 */
 		@StringSetter( MONETARY_DISTANCE_RATE )
 		public void setMonetaryDistanceRate(double monetaryDistanceRate) {
 			testForLocked() ;
@@ -1078,8 +1099,11 @@ public final class PlanCalcScoreConfigGroup extends ConfigGroup {
 				}
 				map.put( pars.getMode() , pars );
 			}
-
-			return map;
+			if ( this.isLocked() ) {
+				return Collections.unmodifiableMap(map) ;
+			} else {
+				return map ;
+			}
 		}
 
 		public ModeParams getOrCreateModeParams(String modeName) {
@@ -1095,10 +1119,9 @@ public final class PlanCalcScoreConfigGroup extends ConfigGroup {
 			final ModeParams previous = this.getModes().get( params.getMode() );
 
 			if ( previous != null ) {
-				log.info("mode parameters for mode " + previous.getMode() + " were just overwritten.") ;
-
 				final boolean removed = removeParameterSet( previous );
 				if ( !removed ) throw new RuntimeException( "problem replacing mode params " );
+				log.info("mode parameters for mode " + previous.getMode() + " were just overwritten.") ;
 			}
 
 			super.addParameterSet( params );

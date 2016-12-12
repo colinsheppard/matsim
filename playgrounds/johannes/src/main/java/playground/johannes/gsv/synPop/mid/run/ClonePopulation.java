@@ -46,7 +46,7 @@ public class ClonePopulation {
 		parser.setValidating(false);
 	
 		logger.info("Loading persons...");
-		parser.parse(args[0]);
+		parser.readFile(args[0]);
 		Set<PlainPerson> persons = (Set<PlainPerson>)parser.getPersons();
 		logger.info(String.format("Loaded %s persons.", persons.size()));
 		
@@ -57,7 +57,7 @@ public class ClonePopulation {
 		logger.info(String.format("Generated %s persons.", persons.size()));
 
 //		logger.info("Deleting persons with no legs..." );
-//		persons = TaskRunner.validateEpisodes(new DeleteNoLegs(), persons);
+//		persons = TaskRunner.validateEpisodes(new ValidateNoLegs(), persons);
 //		logger.info("Population size = " + persons.size());
 		
 		XMLWriter writer = new XMLWriter();

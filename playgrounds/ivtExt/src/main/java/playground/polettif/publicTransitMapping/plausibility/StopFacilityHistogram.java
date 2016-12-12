@@ -23,18 +23,18 @@ import org.matsim.core.utils.collections.MapUtils;
 import org.matsim.core.utils.collections.Tuple;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
+import playground.polettif.publicTransitMapping.config.PublicTransitMappingStrings;
 import playground.polettif.publicTransitMapping.tools.CsvTools;
 import playground.polettif.publicTransitMapping.tools.MiscUtils;
 import playground.polettif.publicTransitMapping.tools.ScheduleTools;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 /**
- * Generates a histogram for all child stop facilities
- * of a schedule
+ * Generates a histogram for number of child stop
+ * facilities per parent stop of a schedule
  *
  * @author polettif
  */
@@ -43,9 +43,10 @@ public class StopFacilityHistogram {
 	private TransitSchedule schedule;
 	private Map<String, Integer> histMap = new TreeMap<>();
 	private double[] hist;
+	private double[] histNr;
 
-	private static final String SUFFIX_PATTERN = "[.]link:";
-	private static final String SUFFIX = ".link:";
+	private static final String SUFFIX_PATTERN = PublicTransitMappingStrings.SUFFIX_CHILD_STOP_FACILITIES_REGEX;
+	private static final String SUFFIX = PublicTransitMappingStrings.SUFFIX_CHILD_STOP_FACILITIES;
 
 	/**
 	 * @param args [0] schedule file, [1] output file (csv or png), [2] output file (csv or png, optional)
@@ -83,12 +84,22 @@ public class StopFacilityHistogram {
 			stopStat.put(parentFacility, ++count);
 		}
 
-		histMap = MiscUtils.sortAscendingByValue(stopStat);
+		histMap = MiscUtils.sortMapAscendingByValue(stopStat);
+
+		Map<Integer, Integer> histNrMap = new TreeMap<>();
 
 		hist = new double[histMap.size()];
 		int i=0;
 		for(Integer value : histMap.values()) {
 			hist[i] = (double) value;
+			MapUtils.addToInteger(value, histNrMap, 1, 1);
+			i++;
+		}
+
+		histNr = new double[new ArrayList<>(histNrMap.keySet()).get(histNrMap.size()-1)];
+		i=0;
+		for(Map.Entry<Integer, Integer> e : histNrMap.entrySet()) {
+			histNr[i] = e.getValue()-1;
 			i++;
 		}
 	}
@@ -122,7 +133,7 @@ public class StopFacilityHistogram {
 		}
 
 		try {
-			CsvTools.writeToFile(CsvTools.convertToCsvLines(stopStatCsv), outputFile);
+			CsvTools.writeToFile(CsvTools.convertToCsvLines(stopStatCsv, ';'), outputFile);
 		} catch (FileNotFoundException | UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}
@@ -132,8 +143,8 @@ public class StopFacilityHistogram {
 	 * @see org.matsim.core.utils.charts
 	 */
 	public void createPng(final String filename) {
-		BarChart chart = new BarChart("Stop Facility Histogram", "", "# of child stop facilities");
-		chart.addSeries("# StopFacilities", hist);
+		BarChart chart = new BarChart("Stop Facility Histogram", "", "# of stops");
+		chart.addSeries("number of child stop facilities", histNr);
 		chart.saveAsPng(filename, 800, 600);
 	}
 }

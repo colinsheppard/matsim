@@ -25,6 +25,8 @@ import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
+import javax.inject.Provider;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.matsim.api.core.v01.Id;
@@ -40,7 +42,7 @@ import org.matsim.api.core.v01.population.PopulationFactory;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.controler.ControlerDefaults;
-import org.matsim.core.population.LegImpl;
+import org.matsim.core.population.algorithms.PersonAlgorithm;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.router.PlanRouter;
 import org.matsim.core.router.TripRouter;
@@ -55,11 +57,8 @@ import org.matsim.core.router.util.TravelDisutility;
 import org.matsim.core.router.util.TravelTime;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.population.algorithms.PersonAlgorithm;
 import org.matsim.roadpricing.RoadPricingSchemeImpl.Cost;
 import org.matsim.testcases.MatsimTestUtils;
-
-import javax.inject.Provider;
 
 /**
  * Tests the correct working of {@link TravelDisutilityIncludingToll} by using it
@@ -85,7 +84,7 @@ public class TollTravelCostCalculatorTest {
 		scheme.addLink(link5Id);
 		final Id<Link> link11Id = Id.create("11", Link.class);
 		scheme.addLink(link11Id);
-		scheme.addCost(0, 10*3600, 0.0007); 
+		scheme.createAndAddCost(0, 10*3600, 0.0007); 
 
 
 		TravelTime timeCalculator = new FreespeedTravelTimeAndDisutility(config.planCalcScore());
@@ -123,7 +122,7 @@ public class TollTravelCostCalculatorTest {
 
 	@Test
 	public void testDistanceTollRouter() {
-		Config config = utils.loadConfig(null);
+		Config config = utils.createConfig();
 		MutableScenario scenario = (MutableScenario) ScenarioUtils.createScenario(ConfigUtils.createConfig());
 		Fixture.createNetwork2(scenario);
 		Network network = scenario.getNetwork();
@@ -157,18 +156,18 @@ public class TollTravelCostCalculatorTest {
 				new DijkstraFactory(),
 				timeCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 		// also test it with A*-Landmarks
 		clearRoutes(population);
-		assertNull(((LegImpl) (person1.getPlans().get(0).getPlanElements().get(1))).getRoute()); // make sure the cleaning worked. we do this only once, then we believe it.
+		assertNull(((Leg) (person1.getPlans().get(0).getPlanElements().get(1))).getRoute()); // make sure the cleaning worked. we do this only once, then we believe it.
 		routePopulation(
 				scenario,
 				aStarLandmarksFactory,
 				timeCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 
-		Cost morningCost = toll.addCost(6*3600, 10*3600, 0.0006); // 0.0006 * link_length(100m) = 0.06, which is slightly below the threshold of 0.0666
+		Cost morningCost = toll.createAndAddCost(6*3600, 10*3600, 0.0006); // 0.0006 * link_length(100m) = 0.06, which is slightly below the threshold of 0.0666
 		// 2nd case: with a low toll, agent still chooses shortest path
 		clearRoutes(population);
 		routePopulation(
@@ -176,7 +175,7 @@ public class TollTravelCostCalculatorTest {
 				new DijkstraFactory(),
 				timeCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 		// also test it with A*-Landmarks
 		clearRoutes(population);
 		routePopulation(
@@ -184,18 +183,18 @@ public class TollTravelCostCalculatorTest {
 				aStarLandmarksFactory,
 				timeCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 
 		// 3rd case: with a higher toll, agent decides to drive around tolled link
 		toll.removeCost(morningCost);
-		toll.addCost(6*3600, 10*3600, 0.0007); // new morning toll, this should be slightly over the threshold
+		toll.createAndAddCost(6*3600, 10*3600, 0.0007); // new morning toll, this should be slightly over the threshold
 		clearRoutes(population);
 		routePopulation(
 				scenario,
 				new DijkstraFactory(),
 				timeCalc,
 				costCalc );
-		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 		// also test it with A*-Landmarks
 		clearRoutes(population);
 		routePopulation(
@@ -203,12 +202,12 @@ public class TollTravelCostCalculatorTest {
 				aStarLandmarksFactory,
 				timeCalc,
 				costCalc );
-		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 	}
 
 	@Test
 	public void testLinkTollRouter() {
-		Config config = utils.loadConfig(null);
+		Config config = utils.createConfig();
 		MutableScenario scenario = (MutableScenario) ScenarioUtils.createScenario(ConfigUtils.createConfig());
 		Fixture.createNetwork2(scenario);
 		Network network = scenario.getNetwork();
@@ -261,7 +260,7 @@ public class TollTravelCostCalculatorTest {
 		}
 		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (planElements2.get(carLegIndex))).getRoute());
 
-		Cost morningCost = toll.addCost(6*3600, 10*3600, 0.06); // 0.06, which is slightly below the threshold of 0.0666
+		Cost morningCost = toll.createAndAddCost(6*3600, 10*3600, 0.06); // 0.06, which is slightly below the threshold of 0.0666
 		// 2nd case: with a low toll, agent still chooses shortest path
 		clearRoutes(population);
 		routePopulation(
@@ -279,18 +278,18 @@ public class TollTravelCostCalculatorTest {
 				routerFactory,
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 
 		// 3rd case: with a higher toll, agent decides to drive around tolled link
 		toll.removeCost(morningCost);
-		toll.addCost(6*3600, 10*3600, 0.07); // new morning toll, this should be slightly over the threshold
+		toll.createAndAddCost(6*3600, 10*3600, 0.07); // new morning toll, this should be slightly over the threshold
 		clearRoutes(population);
 		routePopulation(
 				scenario,
 				new DijkstraFactory(),
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 		// also test it with A*-Landmarks
 		clearRoutes(population);
 		routePopulation(
@@ -298,12 +297,12 @@ public class TollTravelCostCalculatorTest {
 				routerFactory,
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 	}
 	
 	@Test
 	public void testCordonTollRouter() {
-		Config config = utils.loadConfig(null);
+		Config config = utils.createConfig();
 		MutableScenario scenario = (MutableScenario) ScenarioUtils.createScenario(ConfigUtils.createConfig());
 		Fixture.createNetwork2(scenario);
 		Network network = scenario.getNetwork();
@@ -331,7 +330,7 @@ public class TollTravelCostCalculatorTest {
 				new DijkstraFactory(),
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 		// also test it with A*-Landmarks
 		clearRoutes(population);
 		routePopulation(
@@ -339,17 +338,17 @@ public class TollTravelCostCalculatorTest {
 				routerFactory,
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 
 		// 2nd case: with a low toll, agent still chooses shortest path and pay the toll
-		Cost morningCost = toll.addCost(6*3600, 10*3600, 0.06);
+		Cost morningCost = toll.createAndAddCost(6*3600, 10*3600, 0.06);
 		clearRoutes(population);
 		routePopulation(
 				scenario,
 				new DijkstraFactory(),
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 		toll.removeCost(morningCost);
 		// also test it with A*-Landmarks
 		clearRoutes(population);
@@ -358,17 +357,17 @@ public class TollTravelCostCalculatorTest {
 				routerFactory,
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 5 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 
 		// 3rd case: with a higher toll, agent decides to drive around tolled link
-		toll.addCost(6*3600, 10*3600, 0.067);
+		toll.createAndAddCost(6*3600, 10*3600, 0.067);
 		clearRoutes(population);
 		routePopulation(
 				scenario,
 				new DijkstraFactory(),
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 		// also test it with A*-Landmarks
 		clearRoutes(population);
 		routePopulation(
@@ -376,7 +375,7 @@ public class TollTravelCostCalculatorTest {
 				routerFactory,
 				timeCostCalc,
 				costCalc );
-		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((LegImpl) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
+		Fixture.compareRoutes("2 3 4 6", (NetworkRoute) ((Leg) (person1.getPlans().get(0).getPlanElements().get(carLegIndex))).getRoute());
 	}
 
 	/**

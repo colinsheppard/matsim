@@ -263,11 +263,7 @@ public class GautengControler_subpopulations {
 
         // PLANS REMOVAL
 		final Builder builder = new DiversityGeneratingPlansRemover.Builder() ;
-		builder.setActTypeWeight(5.);
-		builder.setLocationWeight(5.);
-		builder.setSameModePenalty(5.);
-		builder.setSameRoutePenalty(5.);
-		builder.setActTimeParameter(0.);
+		builder.setActTypeWeight(5.).setLocationWeight(5.).setSameModePenalty(5.).setSameRoutePenalty(5.).setActTimeParameter(0.);
 		controler.addOverridingModule(new AbstractModule() {
 			@Override
 			public void install() {
@@ -393,7 +389,7 @@ public class GautengControler_subpopulations {
 		String countsFilename = null;
 		if(args.length > 10 && args[10] != null && args[10].length() > 0) {
 			countsFilename = args[10];
-			config.counts().setCountsFileName(countsFilename);
+			config.counts().setInputFile(countsFilename);
 		}
 	}
 	

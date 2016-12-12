@@ -31,7 +31,7 @@ import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.router.costcalculators.TravelDisutilityFactory;
-import playground.benjamin.internalization.EmissionCostModule;
+import playground.vsp.airPollution.flatEmissions.EmissionCostModule;
 import playground.juliakern.distribution.ResDisFactory;
 
 import java.util.HashSet;
@@ -150,7 +150,7 @@ public class RunEmissionPricing {
         EmissionsConfigGroup ecg = new EmissionsConfigGroup() ;
         controler.getConfig().addModule(ecg);
         ecg.setEmissionRoadTypeMappingFile(roadTypeMappingFile);
-        ecg.setEmissionVehicleFile(emissionVehicleFile);
+		config.vehicles().setVehiclesFile(emissionVehicleFile);
         
         ecg.setAverageWarmEmissionFactorsFile(averageFleetWarmEmissionFactorsFile);
         ecg.setAverageColdEmissionFactorsFile(averageFleetColdEmissionFactorsFile);

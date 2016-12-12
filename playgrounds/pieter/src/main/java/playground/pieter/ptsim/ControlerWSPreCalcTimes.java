@@ -57,7 +57,7 @@ import org.matsim.core.mobsim.qsim.changeeventsengine.NetworkChangeEventsEngine;
 import org.matsim.core.mobsim.qsim.pt.TransitQSimEngine;
 import org.matsim.core.mobsim.qsim.qnetsimengine.ConfigurableQNetworkFactory;
 import org.matsim.core.mobsim.qsim.qnetsimengine.QNetsimEngine;
-import org.matsim.core.network.LinkImpl;
+import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.io.IOUtils;
 import org.matsim.pt.router.TransitRouter;
@@ -110,12 +110,12 @@ public class ControlerWSPreCalcTimes {
         final StopStopTimeCalculator stopStopTimeCalculatorSerializable = new StopStopTimeCalculator(
                 controler.getScenario().getTransitSchedule(),
                 controler.getScenario().getConfig());
-
-
-        final MyAfterMobsimAnalyses analyses = new MyAfterMobsimAnalyses(controler);
-
-        controler.addControlerListener(analyses);
-
+        //optional analysis, not for performance runs
+        MyAfterMobsimAnalyses analyses = null;
+        if(args.length > 2 && args[2].equals("analyse")) {
+            analyses = new MyAfterMobsimAnalyses(controler);
+            controler.addControlerListener(analyses);
+        }
 
         controler.getEvents().addHandler(
                 waitTimeStuckCalculator
@@ -127,24 +127,26 @@ public class ControlerWSPreCalcTimes {
 
         //need to make MRT slower, so identify the links with this mode with a hotfix
         for (Link l : controler.getScenario().getNetwork().getLinks().values()) {
-            LinkImpl l1 = (LinkImpl) l;
+            Link l1 = (Link) l;
             String[] parts = l.getId().toString().split(TransitSheduleToNetwork.SEPARATOR);
             if (parts[0].matches("[A-Z]+[0-9]*[_a-z]*")) {
-                l1.setType("rail");
+                NetworkUtils.setType( l1, (String) "rail");
             } else {
-                l1.setType("road");
+                NetworkUtils.setType( l1, (String) "road");
             }
         }
         final PTLinkSpeedCalculatorWithPreCalcTimes linkSpeedCalculatorWithPreCalcTimes = new PTLinkSpeedCalculatorWithPreCalcTimes(preloadedStopStopTimes, true);
         controler.addControlerListener(linkSpeedCalculatorWithPreCalcTimes);
+        TransitRouterEventsWSFactory transitRouterEventsWSFactory = new TransitRouterEventsWSFactory(controler.getScenario(),
+                waitTimeStuckCalculator.getWaitTimes(), stopStopTimeCalculatorSerializable.getStopStopTimes());
         //
         controler.addOverridingModule(new AbstractModule() {
 
             @Override
 
             public void install() {
-                bind(TransitRouter.class).toProvider(new TransitRouterEventsWSFactory(controler.getScenario(),
-                        waitTimeStuckCalculator.getWaitTimes(), stopStopTimeCalculatorSerializable.getStopStopTimes()));
+
+                bind(TransitRouter.class).toProvider(transitRouterEventsWSFactory);
 
                 bindMobsim().toProvider(new Provider<Mobsim>() {
 
@@ -164,10 +166,13 @@ public class ControlerWSPreCalcTimes {
                         qSim.addMobsimEngine(activityEngine);
                         qSim.addActivityHandler(activityEngine);
                         //
-                        ConfigurableQNetworkFactory netsimEngineFactory = new ConfigurableQNetworkFactory(controler.getEvents(), controler.getScenario() ) ;
-                        netsimEngineFactory.setLinkSpeedCalculator(linkSpeedCalculatorWithPreCalcTimes);
-				//
-                        QNetsimEngine netsimEngine = new QNetsimEngine(qSim, netsimEngineFactory );
+                        EventsManager events = controler.getEvents() ;
+                        Scenario scenario = controler.getScenario() ;
+                        Network network = scenario.getNetwork() ;
+                        ConfigurableQNetworkFactory factory = new ConfigurableQNetworkFactory(events, scenario ) ;
+                        factory.setLinkSpeedCalculator(linkSpeedCalculatorWithPreCalcTimes);
+                        QNetsimEngine netsimEngine = new QNetsimEngine(qSim, factory);
+
                         qSim.addMobsimEngine(netsimEngine);
                         qSim.addDepartureHandler(netsimEngine.getDepartureHandler());
                         //

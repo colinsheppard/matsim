@@ -30,7 +30,7 @@ import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.events.MatsimEventsReader;
-import org.matsim.core.network.MatsimNetworkReader;
+import org.matsim.core.network.io.MatsimNetworkReader;
 import org.matsim.core.scenario.ScenarioUtils;
 
 /**
@@ -41,7 +41,7 @@ public class TravelTimeStatistics   {
 
 	public static void main(String[] args) {
 
-		String run = "VW79BC";
+		String run = "run103.100";
 //		String folder = "D:/runs-svn/vw_rufbus/" + run + "/";
 		String folder = "D:/runs-svn/vw_rufbus/" + run + "/";
 		String inputFile = folder + run + ".output_events.xml.gz";
@@ -91,8 +91,8 @@ public class TravelTimeStatistics   {
 		events.addHandler(carTT);
 		events.addHandler(ptTT);
 		events.addHandler(tbTT);
-		events.addHandler(allTT);
-		events.addHandler(analyser);
+//		events.addHandler(allTT);
+//		events.addHandler(analyser);
 		
 		events.addHandler(a);
 		new MatsimEventsReader(events).readFile(inputFile);

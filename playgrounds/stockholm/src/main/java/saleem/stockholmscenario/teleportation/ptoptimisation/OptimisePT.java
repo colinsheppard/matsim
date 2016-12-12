@@ -1,7 +1,6 @@
 package saleem.stockholmscenario.teleportation.ptoptimisation;
 
 import opdytsintegration.MATSimSimulator;
-import opdytsintegration.MATSimStateFactoryImpl;
 import opdytsintegration.utils.TimeDiscretization;
 
 import org.matsim.api.core.v01.Scenario;
@@ -30,8 +29,9 @@ public class OptimisePT {
 	public static void main(String[] args) {
 		System.out.println("STARTED ...");
 		
-		String path = "H:\\Matsim\\Stockholm Scenario\\teleportation\\input\\config.xml";
+		String path = "./ihop2/matsim-input/config - Opt.xml";
 //		String path = "/home/saleem/input/config.xml";
+//		String path = "H:\\Matsim\\Stockholm Scenario\\teleportation\\input\\config.xml";
         Config config = ConfigUtils.loadConfig(path);
         MatsimServices controler = new Controler(config);
         final Scenario scenario = ScenarioUtils.loadScenario(config);
@@ -39,7 +39,8 @@ public class OptimisePT {
 		final String originalOutputDirectory = scenario.getConfig().controler()
 				.getOutputDirectory(); // gets otherwise overwritten in config
 		final AbstractModule module = new ControlerDefaultsModule();
- 
+//		final AbstractModule module = new ControlerDefaultsWithRoadPricingModule();
+
 		
 		final int maxMemorizedTrajectoryLength = Integer.MAX_VALUE;  // revisit this based on available RAM
 		final boolean interpolate = true; // always
@@ -49,7 +50,7 @@ public class OptimisePT {
 		final ConvergenceCriterion convergenceCriterion = new FixedIterationNumberConvergenceCriterion(
 				4,2);
 		final TimeDiscretization timeDiscretization = new TimeDiscretization(0,
-				3600, 24); // OK to start with
+				1800, 48); // OK to start with
 		final ObjectiveFunction objectiveFunction = new PTObjectiveFunction(scenario); // TODO this is minimized
 		
 		// Changing vehicle and road capacity according to sample size
@@ -67,7 +68,7 @@ public class OptimisePT {
 		
 		
 		TransitSchedule schedule = scenario.getTransitSchedule();
-		new CreatePseudoNetwork(schedule, network, "tr_").createNetwork();
+		
 //		NetworkWriter networkWriter =  new NetworkWriter(network);
 //		networkWriter.write("/home/saleem/input/PseudoNetwork.xml");
 //		networkWriter.write("H:\\Matsim\\Stockholm Scenario\\teleportation\\input\\PseudoNetwork.xml");
@@ -82,20 +83,23 @@ public class OptimisePT {
 		// final Set<Id<TransitStopFacility>> relevantStopIds = scenario.getTransitSchedule().getFacilities().keySet();
 		final double occupancyScale = 1;
 		
-		
+
 		@SuppressWarnings("unchecked")		
 		final MATSimSimulator<PTSchedule> matsimSimulator = new MATSimSimulator(
-				new MATSimStateFactoryImpl<>(),
+				new PTMatsimStateFactoryImpl<>(scenario),
 //				new PTStateFactory(timeDiscretization, occupancyScale), 
-				scenario, timeDiscretization,
+				scenario, timeDiscretization //,
 				// null, relevantStopIds,  
-				module);
+//				module
+				);
+		matsimSimulator.setReplacingModules(module);
 		final RandomSearch<PTSchedule> randomSearch = new RandomSearch<>(
 				matsimSimulator, decisionVariableRandomizer, ptschedule,
 				convergenceCriterion, maxRandomSearchIterations,
 				maxRandomSearchTransitions, 2,
 				MatsimRandom.getRandom(), interpolate, objectiveFunction,
 				includeCurrentBest);
+		new CreatePseudoNetwork(schedule, network, "tr_").createNetwork();
 		randomSearch.setLogFileName(originalOutputDirectory + "opdyts.log");
 		randomSearch.setConvergenceTrackingFileName(originalOutputDirectory
 				+ "opdyts.con");

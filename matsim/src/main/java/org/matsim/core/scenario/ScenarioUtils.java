@@ -6,7 +6,7 @@ import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.config.Config;
 import org.matsim.facilities.ActivityFacilities;
 import org.matsim.households.Households;
-import org.matsim.lanes.data.v20.Lanes;
+import org.matsim.lanes.data.Lanes;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.vehicles.Vehicles;
 
@@ -36,6 +36,12 @@ public class ScenarioUtils {
 	 * @see org.matsim.core.config.ConfigUtils#createConfig()
 	 */
 	public static Scenario createScenario(final Config config) {
+		if (config == null) {
+			throw new NullPointerException("config must not be null!");
+		}
+		return new MutableScenario(config);
+	}
+	public static MutableScenario createMutableScenario(final Config config) {
 		if (config == null) {
 			throw new NullPointerException("config must not be null!");
 		}

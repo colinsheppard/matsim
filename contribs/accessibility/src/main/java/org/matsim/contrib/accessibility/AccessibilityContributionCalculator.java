@@ -5,7 +5,7 @@ import org.matsim.contrib.accessibility.utils.AggregationObject;
 import org.matsim.facilities.ActivityFacility;
 
 /**
- * Interface to provide a mean to compute the utility of a given
+ * Interface to provide a means to compute the utility of a given
  * origin destination, for a given mode.
  * This includes travel time estimation and utility formulation.
  *
@@ -40,4 +40,6 @@ public interface AccessibilityContributionCalculator {
 	 * @return the utility of the OD pair, to be included in the logsum
 	 */
 	double computeContributionOfOpportunity(ActivityFacility origin, AggregationObject destination, Double departureTime);
+	// yyyy I am somewhat sceptic if we tryly need both "fromNode" (above) and origin.
+	// yyyy And I am quite confident that we do not need the departure time twice.
 }

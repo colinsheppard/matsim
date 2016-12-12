@@ -22,18 +22,22 @@
  */
 package playground.vsp.congestion;
 
+import java.util.*;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.events.LinkEnterEvent;
 import org.matsim.api.core.v01.events.LinkLeaveEvent;
 import org.matsim.api.core.v01.events.handler.LinkEnterEventHandler;
 import org.matsim.api.core.v01.events.handler.LinkLeaveEventHandler;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.api.experimental.events.EventsManager;
@@ -54,26 +58,18 @@ import org.matsim.core.mobsim.qsim.agents.AgentFactory;
 import org.matsim.core.mobsim.qsim.agents.DefaultAgentFactory;
 import org.matsim.core.mobsim.qsim.agents.PopulationAgentSource;
 import org.matsim.core.mobsim.qsim.qnetsimengine.QNetsimEngineModule;
-import org.matsim.core.network.NetworkImpl;
-import org.matsim.core.population.PopulationFactoryImpl;
+import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.LinkNetworkRouteFactory;
 import org.matsim.core.population.routes.NetworkRoute;
+import org.matsim.core.router.costcalculators.RandomizingTimeDistanceTravelDisutilityFactory;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.testcases.MatsimTestUtils;
 import playground.vsp.congestion.controler.MarginalCongestionPricingContolerListener;
 import playground.vsp.congestion.events.CongestionEvent;
-import playground.vsp.congestion.handlers.CongestionEventHandler;
-import playground.vsp.congestion.handlers.CongestionHandlerImplV10;
-import playground.vsp.congestion.handlers.CongestionHandlerImplV3;
-import playground.vsp.congestion.handlers.CongestionHandlerImplV8;
-import playground.vsp.congestion.handlers.CongestionHandlerImplV9;
-import playground.vsp.congestion.handlers.TollHandler;
+import playground.vsp.congestion.handlers.*;
+import playground.vsp.congestion.routing.CongestionTollTimeDistanceTravelDisutilityFactory;
 import playground.vsp.congestion.routing.TollDisutilityCalculatorFactory;
-
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.util.*;
 
 /**
  * 
@@ -307,7 +303,10 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		Controler controler = new Controler( scenario );
 
 		final TollHandler tollHandler = new TollHandler(controler.getScenario());
-		final TollDisutilityCalculatorFactory tollDisutilityCalculatorFactory = new TollDisutilityCalculatorFactory(tollHandler, controler.getConfig().planCalcScore());
+				
+		final CongestionTollTimeDistanceTravelDisutilityFactory tollDisutilityCalculatorFactory = new CongestionTollTimeDistanceTravelDisutilityFactory(
+				new RandomizingTimeDistanceTravelDisutilityFactory(TransportMode.car, config.planCalcScore()),
+				tollHandler, controler.getConfig().planCalcScore());
 		controler.addOverridingModule(new AbstractModule() {
 			@Override
 			public void install() {
@@ -322,6 +321,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 				bindCarTravelDisutilityFactory().toInstance(tollDisutilityCalculatorFactory);
 			}
 		});
+		
 		final String timeBin1 = "08:00-08:15";
 		final String timeBin2 = "08:15-08:30";
 			
@@ -673,7 +673,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 	private void setPopulation1(Scenario scenario) {
 		
 		Population population = scenario.getPopulation();
-        PopulationFactoryImpl popFactory = (PopulationFactoryImpl) scenario.getPopulation().getFactory();
+        PopulationFactory popFactory = (PopulationFactory) scenario.getPopulation().getFactory();
 		LinkNetworkRouteFactory routeFactory = new LinkNetworkRouteFactory();
 
 		Activity workActLink5 = popFactory.createActivityFromLinkId("work", linkId5);
@@ -707,7 +707,11 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		Activity homeActLink1_2 = popFactory.createActivityFromLinkId("home", linkId1);
 		homeActLink1_2.setEndTime(101);
 		plan2.addActivity(homeActLink1_2);
-		plan2.addLeg(leg_1_5);
+		{
+			Leg leg = popFactory.createLeg(leg_1_5.getMode());
+			PopulationUtils.copyFromTo(leg_1_5, leg);
+			plan2.addLeg(leg);
+		}
 		plan2.addActivity(workActLink5);
 		person2.addPlan(plan2);
 		population.addPerson(person2);			
@@ -719,7 +723,11 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		Activity homeActLink1_3 = popFactory.createActivityFromLinkId("home", linkId1);
 		homeActLink1_3.setEndTime(102);
 		plan3.addActivity(homeActLink1_3);
-		plan3.addLeg(leg_1_5);
+		{
+			Leg leg = popFactory.createLeg(leg_1_5.getMode());
+			PopulationUtils.copyFromTo(leg_1_5, leg);
+			plan3.addLeg(leg);
+		}
 		plan3.addActivity(workActLink5);
 		person3.addPlan(plan3);
 		population.addPerson(person3);
@@ -729,7 +737,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 	private void setPopulation4(Scenario scenario) {
 		
 		Population population = scenario.getPopulation();
-        PopulationFactoryImpl popFactory = (PopulationFactoryImpl) scenario.getPopulation().getFactory();
+        PopulationFactory popFactory = (PopulationFactory) scenario.getPopulation().getFactory();
 		LinkNetworkRouteFactory routeFactory = new LinkNetworkRouteFactory();
 
 		Activity workActLink5 = popFactory.createActivityFromLinkId("work", linkId5);
@@ -759,7 +767,11 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		Activity homeActLink1_2 = popFactory.createActivityFromLinkId("home", linkId1);
 		homeActLink1_2.setEndTime(101);
 		plan2.addActivity(homeActLink1_2);
-		plan2.addLeg(leg_1_5);
+		{
+			Leg leg = popFactory.createLeg(leg_1_5.getMode());
+			PopulationUtils.copyFromTo(leg_1_5, leg);
+			plan2.addLeg(leg);
+		}
 		plan2.addActivity(workActLink5);
 		person2.addPlan(plan2);
 		population.addPerson(person2);
@@ -788,7 +800,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 	private void setPopulation5(Scenario scenario) {
 		
 		Population population = scenario.getPopulation();
-        PopulationFactoryImpl popFactory = (PopulationFactoryImpl) scenario.getPopulation().getFactory();
+        PopulationFactory popFactory = (PopulationFactory) scenario.getPopulation().getFactory();
 		LinkNetworkRouteFactory routeFactory = new LinkNetworkRouteFactory();
 
 		Activity workActLink5 = popFactory.createActivityFromLinkId("work", linkId5);
@@ -818,7 +830,11 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		Activity homeActLink1_2 = popFactory.createActivityFromLinkId("home", linkId1);
 		homeActLink1_2.setEndTime(101);
 		plan2.addActivity(homeActLink1_2);
-		plan2.addLeg(leg_1_5);
+		{
+			Leg leg = popFactory.createLeg(leg_1_5.getMode());
+			PopulationUtils.copyFromTo(leg_1_5, leg);
+			plan2.addLeg(leg);
+		}
 		plan2.addActivity(workActLink5);
 		person2.addPlan(plan2);
 		population.addPerson(person2);
@@ -847,7 +863,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 	private void setPopulation6(Scenario scenario) {
 		
 		Population population = scenario.getPopulation();
-		PopulationFactoryImpl popFactory = (PopulationFactoryImpl) scenario.getPopulation().getFactory();
+		PopulationFactory popFactory = (PopulationFactory) scenario.getPopulation().getFactory();
 		LinkNetworkRouteFactory routeFactory = new LinkNetworkRouteFactory();
 
 		Activity workActLink5 = popFactory.createActivityFromLinkId("work", linkId5);
@@ -871,13 +887,17 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		plan1.addActivity(workActLink5);
 		person1.addPlan(plan1);
 		population.addPerson(person1);
-		
+
 		Person person2 = popFactory.createPerson(testAgent2);
 		Plan plan2 = popFactory.createPlan();
 		Activity homeActLink1_2 = popFactory.createActivityFromLinkId("home", linkId1);
 		homeActLink1_2.setEndTime(106);
 		plan2.addActivity(homeActLink1_2);
-		plan2.addLeg(leg_1_5);
+		{
+			Leg leg = popFactory.createLeg(leg_1_5.getMode());
+			PopulationUtils.copyFromTo(leg_1_5, leg);
+			plan2.addLeg(leg);
+		}
 		plan2.addActivity(workActLink5);
 		person2.addPlan(plan2);
 		population.addPerson(person2);
@@ -907,7 +927,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		// (0)				(1)				(2)				(3)				(4)				(5)
 		//    -----link1----   ----link2----   ----link3----   ----link4----   ----link5----   
 		
-		Config config = testUtils.loadConfig(null);
+		Config config = testUtils.createConfig();
 		QSimConfigGroup qSimConfigGroup = config.qsim();
 		qSimConfigGroup.setFlowCapFactor(1.0);
 		qSimConfigGroup.setStorageCapFactor(1.0);
@@ -916,7 +936,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		qSimConfigGroup.setStuckTime(3600.0);
 		Scenario scenario = (ScenarioUtils.createScenario(config));
 	
-		NetworkImpl network = (NetworkImpl) scenario.getNetwork();
+		Network network = (Network) scenario.getNetwork();
 		network.setEffectiveCellSize(7.5);
 		network.setCapacityPeriod(3600.);
 
@@ -994,7 +1014,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		// (0)				(1)				(2)				(3)				(4)				(5)
 		//    -----link1----   ----link2----   ----link3----   ----link4----   ----link5----   
 		
-		Config config = testUtils.loadConfig(null);
+		Config config = testUtils.createConfig();
 		QSimConfigGroup qSimConfigGroup = config.qsim();
 		qSimConfigGroup.setFlowCapFactor(1.0);
 		qSimConfigGroup.setStorageCapFactor(1.0);
@@ -1003,7 +1023,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		qSimConfigGroup.setStuckTime(6.0);
 		Scenario scenario = (ScenarioUtils.createScenario(config));
 	
-		NetworkImpl network = (NetworkImpl) scenario.getNetwork();
+		Network network = (Network) scenario.getNetwork();
 		network.setEffectiveCellSize(7.5);
 		network.setCapacityPeriod(3600.);
 
@@ -1080,7 +1100,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		// (0)				(1)				(2)				(3)				(4)				(5)
 		//    -----link1----   ----link2----   ----link3----   ----link4----   ----link5----   
 		
-		Config config = testUtils.loadConfig(null);
+		Config config = testUtils.createConfig();
 		QSimConfigGroup qSimConfigGroup = config.qsim();
 		qSimConfigGroup.setFlowCapFactor(1.0);
 		qSimConfigGroup.setStorageCapFactor(1.0);
@@ -1089,7 +1109,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		qSimConfigGroup.setStuckTime(3600.0);
 		Scenario scenario = (ScenarioUtils.createScenario(config));
 	
-		NetworkImpl network = (NetworkImpl) scenario.getNetwork();
+		Network network = (Network) scenario.getNetwork();
 		network.setEffectiveCellSize(7.5);
 		network.setCapacityPeriod(3600.);
 
@@ -1166,7 +1186,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		// (0)				(1)				(2)				(3)				(4)				(5)
 		//    -----link1----   ----link2----   ----link3----   ----link4----   ----link5----   
 		
-		Config config = testUtils.loadConfig(null);
+		Config config =  testUtils.createConfig();
 		QSimConfigGroup qSimConfigGroup = config.qsim();
 		qSimConfigGroup.setFlowCapFactor(1.0);
 		qSimConfigGroup.setStorageCapFactor(1.0);
@@ -1175,7 +1195,7 @@ public class MarginalCongestionHandlerFlowSpillbackQueueQsimTest {
 		qSimConfigGroup.setStuckTime(3600.0);
 		Scenario scenario = (ScenarioUtils.createScenario(config));
 	
-		NetworkImpl network = (NetworkImpl) scenario.getNetwork();
+		Network network = (Network) scenario.getNetwork();
 		network.setEffectiveCellSize(7.5);
 		network.setCapacityPeriod(3600.);
 

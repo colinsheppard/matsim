@@ -35,17 +35,19 @@ import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.misc.Counter;
 import org.matsim.pt.transitSchedule.api.*;
 import org.matsim.vehicles.*;
-import playground.polettif.publicTransitMapping.config.PublicTransitMappingConfigGroup;
+import playground.polettif.publicTransitMapping.config.PublicTransitMappingStrings;
 import playground.polettif.publicTransitMapping.mapping.PTMapperUtils;
-import playground.polettif.publicTransitMapping.mapping.router.Router;
+import playground.polettif.publicTransitMapping.mapping.networkRouter.Router;
 
 import java.util.*;
 
 /**
- * Methods to load and change transit schedules
+ * Methods to load and modify transit schedules. Also provides
+ * methods to get information from transit routes.
  *
  * @author polettif
  */
+@Deprecated
 public class ScheduleTools {
 
 	protected static Logger log = Logger.getLogger(ScheduleTools.class);
@@ -58,7 +60,6 @@ public class ScheduleTools {
 	public static TransitSchedule readTransitSchedule(String fileName) {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 		new TransitScheduleReader(scenario).readFile(fileName);
-
 		return scenario.getTransitSchedule();
 	}
 
@@ -67,7 +68,6 @@ public class ScheduleTools {
 	 */
 	public static TransitSchedule createSchedule() {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
-
 		return scenario.getTransitSchedule();
 	}
 
@@ -167,13 +167,9 @@ public class ScheduleTools {
 	 *                 defined in the transitRoute).
 	 */
 	public static void routeSchedule(TransitSchedule schedule, Network network, Map<String, Router> routers) {
-		routeSchedule(schedule, network, routers, true);
-	}
-
-	public static void routeSchedule(TransitSchedule schedule, Network network, Map<String, Router> routers, boolean logging) {
 		Counter counterRoute = new Counter("route # ");
 
-		if(logging) log.info("Routing all routes with referenced links...");
+		log.info("Routing all routes with referenced links...");
 
 		if(routers == null) {
 			log.error("No routers given, routing cannot be completed!");
@@ -188,7 +184,7 @@ public class ScheduleTools {
 				if(transitRoute.getStops().size() > 0) {
 					Router modeDependentRouter = routers.get(transitRoute.getTransportMode());
 
-					if(logging) counterRoute.incCounter();
+					counterRoute.incCounter();
 
 					List<TransitRouteStop> routeStops = transitRoute.getStops();
 					List<Id<Link>> linkIdSequence = new LinkedList<>();
@@ -210,7 +206,6 @@ public class ScheduleTools {
 						Id<Link> currentLinkId = Id.createLinkId(routeStops.get(i).getStopFacility().getLinkId().toString());
 						Link currentLink = network.getLinks().get(currentLinkId);
 						Link nextLink = network.getLinks().get(routeStops.get(i + 1).getStopFacility().getLinkId());
-
 
 						LeastCostPathCalculator.Path leastCostPath = modeDependentRouter.calcLeastCostPath(currentLink.getToNode(), nextLink.getFromNode());
 
@@ -234,7 +229,7 @@ public class ScheduleTools {
 				}
 			} // -route
 		} // -line
-		if(logging) log.info("Routing all routes with referenced links... done");
+		log.info("Routing all routes with referenced links... done");
 	}
 
 	/**
@@ -413,7 +408,7 @@ public class ScheduleTools {
 	 * child stop facility suffix ".link:"
 	 */
 	public static String getParentId(String stopFacilityId) {
-		String[] childStopSplit = stopFacilityId.split(PublicTransitMappingConfigGroup.SUFFIX_CHILD_STOP_FACILITIES_REGEX);
+		String[] childStopSplit = stopFacilityId.split(PublicTransitMappingStrings.SUFFIX_CHILD_STOP_FACILITIES_REGEX);
 		return childStopSplit[0];
 	}
 }

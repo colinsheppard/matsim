@@ -57,7 +57,7 @@ public class RunnableChainReconstructor implements Runnable {
 		DigicoreVehicleReader_v1 dvr = new DigicoreVehicleReader_v1();
 		
 		try{
-			dvr.parse(vehicleFile.getAbsolutePath());
+			dvr.readFile(vehicleFile.getAbsolutePath());
 			DigicoreVehicle dv = dvr.getVehicle();
 			
 			for(DigicoreChain dc : dv.getChains()){
@@ -118,10 +118,11 @@ public class RunnableChainReconstructor implements Runnable {
 					count++;
 				}
 				
-				/* Write the (possibly) adapted vehicle to file. */
+				/* Write the (possibly) adapted vehicle to file. 
+				 * TODO Update to consider V2 vehicles. */
 				if(inStudyArea){
-					DigicoreVehicleWriter dvw = new DigicoreVehicleWriter();
-					dvw.write(this.outputFolder + dv.getId().toString() + ".xml.gz", dv);		
+					DigicoreVehicleWriter dvw = new DigicoreVehicleWriter(dv);
+					dvw.writeV1(this.outputFolder + dv.getId().toString() + ".xml.gz");		
 					
 					/*FIXME Can remove this log messages if we can debug the odd low 
 					 * percentage of activities WITH facility IDs. */

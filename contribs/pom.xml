@@ -16,7 +16,7 @@
 	<distributionManagement>
         <repository>
 			<id>bintray</id>
-			<url>https://api.bintray.com/maven/matsim/matsim/contrib</url>
+			<url>https://api.bintray.com/maven/matsim/matsim/matsim</url>
 		</repository>
 		<snapshotRepository>
 			<id>oss-jfrog-artifactory</id>
@@ -69,21 +69,17 @@
 				</executions>
 			</plugin>
 			<plugin>
-                <!-- Usage:
-                    * Put a file like release.properties.template in the root directory of this project,
-                      renaming it to release.properties and changing the version numbers in it.
-
-                    * Run the following, changing the version numbers:
-                    mvn release:prepare -Darguments="-DskipTests" -DreleaseVersion=0.7.1 -DdevelopmentVersion=0.7.2-SNAPSHOT -B
-                    mvn release:perform -Darguments="-DskipTests" -DreleaseVersion=0.7.1 -DdevelopmentVersion=0.7.2-SNAPSHOT -B
-
-                    This is ugly in the extreme, but there seems to be a bug in the release plug-in where (for our setup) it asks
-                    which version of the MATSim dependency to use over and over again. So we pretend this question was already settled
-                    by putting that file there, which marks an intermediary stage of the release process. Yuck.
-                -->
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.1</version>
-            </plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
@@ -114,6 +110,7 @@
 
 	<modules>
 		<module>accessibility</module>
+		<module>av</module>
 		<module>evacuation</module>
 		<module>analysis</module>
 		<module>cadytsIntegration</module>
@@ -122,7 +119,6 @@
 		<module>taxi</module>
 		<module>emissions</module>
 		<module>freight</module>
-		<module>gtfs2matsimtransitschedule</module>
 		<module>signals</module>
 		<module>locationchoice</module>
 		<module>matsim4urbansim</module>
@@ -141,7 +137,6 @@
 		<module>pseudosimulation</module>
 		<module>common</module>
 		<module>eventsBasedPTRouter</module>
-		<module>map2mapmatching</module>
 		<module>travelsummary</module>
 		<module>deprecated</module>
 		<module>protobuf</module>
@@ -258,7 +253,7 @@
 		<profile>
 			<id>release</id>
 			<build>
-				<defaultGoal>assembly:assembly</defaultGoal>
+				<defaultGoal>package</defaultGoal>
 				<pluginManagement>
 					<plugins>
 						<plugin>
@@ -268,6 +263,15 @@
 									<descriptor>src/main/assembly/assembly-release.xml</descriptor>
 								</descriptors>
 							</configuration>
+							<executions>
+								<execution>
+									<id>make-assembly</id> <!-- this is used for inheritance merges -->
+									<phase>package</phase> <!-- bind to the packaging phase -->
+									<goals>
+										<goal>single</goal>
+									</goals>
+								</execution>
+							</executions>
 						</plugin>
 						<plugin>
 							<artifactId>maven-jar-plugin</artifactId>

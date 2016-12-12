@@ -43,6 +43,10 @@ import org.matsim.core.mobsim.qsim.agents.AgentFactory;
 import org.matsim.core.mobsim.qsim.agents.DefaultAgentFactory;
 import org.matsim.core.mobsim.qsim.agents.PopulationAgentSource;
 import org.matsim.core.mobsim.qsim.qnetsimengine.QNetsimEngine;
+import org.matsim.core.population.algorithms.AbstractPersonAlgorithm;
+import org.matsim.core.population.algorithms.ParallelPersonAlgorithmRunner;
+import org.matsim.core.population.algorithms.PersonPrepareForSim;
+import org.matsim.core.population.algorithms.PlanAlgorithm;
 import org.matsim.core.replanning.PlanStrategy;
 import org.matsim.core.replanning.PlanStrategyImpl;
 import org.matsim.core.replanning.StrategyManager;
@@ -58,10 +62,6 @@ import org.matsim.core.router.util.TravelDisutility;
 import org.matsim.core.scoring.ScoringFunctionFactory;
 import org.matsim.core.scoring.functions.CharyparNagelScoringFunctionFactory;
 import org.matsim.core.trafficmonitoring.TravelTimeCalculator;
-import org.matsim.population.algorithms.AbstractPersonAlgorithm;
-import org.matsim.population.algorithms.ParallelPersonAlgorithmRunner;
-import org.matsim.population.algorithms.PersonPrepareForSim;
-import org.matsim.population.algorithms.PlanAlgorithm;
 import org.matsim.vis.otfvis.OTFFileWriter;
 import org.matsim.vis.snapshotwriters.SnapshotWriter;
 import org.matsim.vis.snapshotwriters.SnapshotWriterManager;
@@ -112,12 +112,12 @@ public class RunMunichZone30Controller extends AbstractController {
 	 * The order how the listeners are added may be important! As
 	 * dependencies between different listeners exist or listeners may read
 	 * and write to common variables, the order is important. 
-	 * <br/> 
+	 * <br>
 	 * The example given in the old Controler was: The
 	 * RoadPricing-Listener modifies the scoringFunctionFactory, which in
 	 * turn is used by the PlansScoring-Listener. I would argue that such dependencies are not necessary with the
 	 * code as designed her: One could first define the scoring function completely, and then add it where needed. kai, jun'12
-	 * <br/>
+	 * <br>
 	 * IMPORTANT: The execution order is reverse to the order the listeners
 	 * are added to the list.
 	 */

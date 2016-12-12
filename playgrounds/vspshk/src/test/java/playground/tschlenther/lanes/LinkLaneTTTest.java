@@ -21,6 +21,7 @@ import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.Population;
+import org.matsim.api.core.v01.population.PopulationFactory;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
@@ -30,15 +31,14 @@ import org.matsim.core.events.algorithms.EventWriterXML;
 import org.matsim.core.events.handler.BasicEventHandler;
 import org.matsim.core.mobsim.qsim.QSim;
 import org.matsim.core.mobsim.qsim.QSimUtils;
-import org.matsim.core.population.PopulationFactoryImpl;
 import org.matsim.core.population.routes.LinkNetworkRouteFactory;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.lanes.data.v20.Lane;
-import org.matsim.lanes.data.v20.Lanes;
-import org.matsim.lanes.data.v20.LaneDefinitionsFactory20;
-import org.matsim.lanes.data.v20.LaneDefinitionsWriter20;
-import org.matsim.lanes.data.v20.LanesToLinkAssignment20;
+import org.matsim.lanes.data.Lane;
+import org.matsim.lanes.data.Lanes;
+import org.matsim.lanes.data.LanesFactory;
+import org.matsim.lanes.data.LanesToLinkAssignment;
+import org.matsim.lanes.data.LanesWriter;
 import org.matsim.testcases.MatsimTestUtils;
 
 /**
@@ -215,12 +215,12 @@ public class LinkLaneTTTest {
 			  [..200m..][......200m......][.200m.]	
 			 */
 			Lanes lanes = scenario.getLanes();
-			LaneDefinitionsFactory20 lfactory = lanes.getFactory();
+			LanesFactory lfactory = lanes.getFactory();
 			Id<Lane> olId = Id.create("2.1", Lane.class);
 			Id<Lane> secondLaneId = Id.create("2.2", Lane.class);
 			Id<Lane> thirdLaneId = Id.create("2.3", Lane.class);
 			Id<Lane> fourthLaneId = Id.create("2.4", Lane.class);
-			LanesToLinkAssignment20 l2l = lfactory.createLanesToLinkAssignment(LINK_ID2);
+			LanesToLinkAssignment l2l = lfactory.createLanesToLinkAssignment(LINK_ID2);
 			
 			//create 4 lanes following each other
 			Lane lane = lfactory.createLane(olId);
@@ -257,7 +257,7 @@ public class LinkLaneTTTest {
 			}
 			
 			if(WRITE_OUTPUT){
-				LaneDefinitionsWriter20 writer = new LaneDefinitionsWriter20(lanes);
+				LanesWriter writer = new LanesWriter(lanes);
 				writer.write(utils.getOutputDirectory() + "4lanes.xml");
 			}
 			
@@ -303,7 +303,7 @@ public class LinkLaneTTTest {
 			}
 			
 			if(WRITE_OUTPUT){
-				LaneDefinitionsWriter20 writer = new LaneDefinitionsWriter20(lanes);
+				LanesWriter writer = new LanesWriter(lanes);
 				writer.write(utils.getOutputDirectory() + "topBottomlanes.xml");
 			}
 			
@@ -357,7 +357,7 @@ public class LinkLaneTTTest {
 	private void createPopulation(Scenario scenario, int caseNr) {
 		
 		Population population = scenario.getPopulation();
-        PopulationFactoryImpl popFactory = (PopulationFactoryImpl) scenario.getPopulation().getFactory();
+        PopulationFactory popFactory = (PopulationFactory) scenario.getPopulation().getFactory();
 		LinkNetworkRouteFactory routeFactory = new LinkNetworkRouteFactory();
 		
 		Activity workAct = popFactory.createActivityFromLinkId("work", LINK_ID3);

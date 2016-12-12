@@ -23,8 +23,8 @@ import java.util.HashSet;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.events.LinkLeaveEvent;
 import org.matsim.api.core.v01.events.handler.LinkLeaveEventHandler;
-import org.matsim.contrib.parking.lib.GeneralLib;
-import org.matsim.contrib.parking.lib.obj.IntegerValueHashMap;
+import org.matsim.contrib.parking.parkingchoice.lib.GeneralLib;
+import org.matsim.contrib.parking.parkingchoice.lib.obj.IntegerValueHashMap;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.events.EventsReaderXMLv1;
 import org.matsim.core.events.EventsUtils;
@@ -68,7 +68,7 @@ public class MeasureDifferenceInTrafficCounts {
 			events.addHandler(this);
 
 			EventsReaderXMLv1 reader = new EventsReaderXMLv1(events);
-			reader.parse(eventsFilePathA);
+			reader.readFile(eventsFilePathA);
 		}
 		
 		@Override

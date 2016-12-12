@@ -37,8 +37,8 @@ import org.matsim.core.controler.listener.StartupListener;
 import org.matsim.core.events.algorithms.EventWriterXML;
 import org.matsim.core.scenario.MutableScenario;
 
-import playground.benjamin.internalization.EmissionCostModule;
-import playground.benjamin.internalization.EmissionInternalizationHandler;
+import playground.vsp.airPollution.flatEmissions.EmissionCostModule;
+import playground.vsp.airPollution.flatEmissions.EmissionInternalizationHandler;
 import playground.vsp.congestion.handlers.CongestionHandlerImplV3;
 import playground.vsp.congestion.handlers.MarginalCongestionPricingHandler;
 import playground.vsp.congestion.handlers.TollHandler;
@@ -50,8 +50,8 @@ public class InternalizeEmissionsCongestionControlerListener implements StartupL
 	private final Logger logger = Logger.getLogger(InternalizeEmissionsCongestionControlerListener.class);
 
 	private MatsimServices controler;
-	private EmissionModule emissionModule;
-	private EmissionCostModule emissionCostModule;
+	private final EmissionModule emissionModule;
+	private final EmissionCostModule emissionCostModule;
 	private String emissionEventOutputFile;
 	private EventWriterXML emissionEventWriter;
 	private EmissionInternalizationHandler emissionInternalizationHandler;
@@ -62,7 +62,7 @@ public class InternalizeEmissionsCongestionControlerListener implements StartupL
 	int lastIt;
 
 	private final MutableScenario scenario;
-	private TollHandler tollHandler;
+	private final TollHandler tollHandler;
 	private CongestionHandlerImplV3 congestionHandler;
 
 

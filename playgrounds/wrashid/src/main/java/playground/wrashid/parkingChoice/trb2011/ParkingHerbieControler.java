@@ -6,8 +6,8 @@ import java.util.Random;
 import herbie.running.controler.HerbieModule;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
-import org.matsim.contrib.parking.lib.DebugLib;
-import org.matsim.contrib.parking.lib.GeneralLib;
+import org.matsim.contrib.parking.parkingchoice.lib.DebugLib;
+import org.matsim.contrib.parking.parkingchoice.lib.GeneralLib;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.MatsimServices;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
@@ -221,7 +221,7 @@ public class ParkingHerbieControler {
 
 	public static void readParkings(double parkingCalibrationFactor, String parkingsFile, LinkedList<PParking> parkingCollection) {
 		FlatParkingFormatReaderV1 flatParkingFormatReaderV1 = new FlatParkingFormatReaderV1();
-		flatParkingFormatReaderV1.parse(parkingsFile);
+		flatParkingFormatReaderV1.readFile(parkingsFile);
 
 		LinkedList<PParking> parkings = flatParkingFormatReaderV1.getParkings();
 		calibarteParkings(parkings, parkingCalibrationFactor);

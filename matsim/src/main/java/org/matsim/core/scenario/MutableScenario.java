@@ -33,8 +33,8 @@ import org.matsim.facilities.ActivityFacilities;
 import org.matsim.facilities.ActivityFacilitiesImpl;
 import org.matsim.households.Households;
 import org.matsim.households.HouseholdsImpl;
-import org.matsim.lanes.data.v20.Lanes;
-import org.matsim.lanes.data.v20.LaneDefinitions20Impl;
+import org.matsim.lanes.data.Lanes;
+import org.matsim.lanes.data.LanesImpl;
 import org.matsim.pt.transitSchedule.TransitScheduleFactoryImpl;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.vehicles.VehicleUtils;
@@ -45,7 +45,8 @@ import org.matsim.vehicles.Vehicles;
  * @author dgrether
  * @author mrieser
  */
-public final class MutableScenario implements Scenario {
+public final class MutableScenario implements Scenario, Lockable {
+	@SuppressWarnings("unused")
 	private static final Logger log = Logger.getLogger(MutableScenario.class);
 
 	private boolean locked = false ;
@@ -72,7 +73,7 @@ public final class MutableScenario implements Scenario {
 		this.population = PopulationUtils.createPopulation(this.config, this.network);
 		this.facilities = new ActivityFacilitiesImpl();
 		this.households = new HouseholdsImpl();
-		this.lanes = new LaneDefinitions20Impl();
+		this.lanes = new LanesImpl();
 		this.vehicles = VehicleUtils.createVehiclesContainer();
 		this.transitVehicles = VehicleUtils.createVehiclesContainer();
 		this.transitSchedule = new TransitScheduleFactoryImpl().createTransitSchedule();
@@ -168,6 +169,7 @@ public final class MutableScenario implements Scenario {
 		return elements.get( name );
 	}
 
+	@Override
 	public final void setLocked() {
 		this.locked = true ;
 	}

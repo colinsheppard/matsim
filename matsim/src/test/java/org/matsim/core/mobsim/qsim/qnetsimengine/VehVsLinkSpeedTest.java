@@ -39,6 +39,7 @@ import org.matsim.api.core.v01.events.LinkLeaveEvent;
 import org.matsim.api.core.v01.events.handler.LinkEnterEventHandler;
 import org.matsim.api.core.v01.events.handler.LinkLeaveEventHandler;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Leg;
@@ -56,12 +57,13 @@ import org.matsim.core.mobsim.qsim.TeleportationEngine;
 import org.matsim.core.mobsim.qsim.agents.AgentFactory;
 import org.matsim.core.mobsim.qsim.agents.DefaultAgentFactory;
 import org.matsim.core.mobsim.qsim.agents.PopulationAgentSource;
-import org.matsim.core.network.NetworkImpl;
+import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.population.routes.LinkNetworkRouteFactory;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.misc.Time;
 import org.matsim.testcases.MatsimTestUtils;
+import org.matsim.vehicles.Vehicle;
 import org.matsim.vehicles.VehicleType;
 import org.matsim.vehicles.VehicleUtils;
 
@@ -111,15 +113,15 @@ public class VehVsLinkSpeedTest {
 		plan.addActivity(a2);
 		net.population.addPerson(p);
 
-		Map<Id<Person>, Map<Id<Link>, Double>> personLinkTravelTimes = new HashMap<Id<Person>, Map<Id<Link>, Double>>();
+		Map<Id<Vehicle>, Map<Id<Link>, Double>> vehicleLinkTravelTime = new HashMap<>();
 
 		EventsManager manager = EventsUtils.createEventsManager();
-		manager.addHandler(new PersonLinkTravelTimeEventHandler(personLinkTravelTimes));
+		manager.addHandler(new VehicleLinkTravelTimeHandler(vehicleLinkTravelTime));
 
 		QSim qSim = createQSim(net, manager, this.vehSpeed);
 		qSim.run();
 
-		Map<Id<Link>, Double> travelTime1 = personLinkTravelTimes.get(Id.create("0", Person.class));
+		Map<Id<Link>, Double> travelTime1 = vehicleLinkTravelTime.get(Id.create("0", Vehicle.class));
 	
 		Link desiredLink = net.scenario.getNetwork().getLinks().get(Id.createLinkId(2));
 		
@@ -161,7 +163,7 @@ public class VehVsLinkSpeedTest {
 	private static final class SimpleNetwork{
 		final Config config;
 		final Scenario scenario ;
-		final NetworkImpl network;
+		final Network network;
 		final Population population;
 		final Link link1;
 		final Link link2;
@@ -176,44 +178,50 @@ public class VehVsLinkSpeedTest {
 			config.qsim().setMainModes(Arrays.asList("car","bike"));
 			config.qsim().setLinkDynamics(QSimConfigGroup.LinkDynamics.PassingQ.name());
 
-			network = (NetworkImpl) scenario.getNetwork();
+			network = (Network) scenario.getNetwork();
 			this.network.setCapacityPeriod(Time.parseTime("1:00:00"));
 			double x = -100.0;
-			Node node1 = network.createAndAddNode(Id.create("1", Node.class), new Coord(x, 0.0));
-			Node node2 = network.createAndAddNode(Id.create("2", Node.class), new Coord(0.0, 0.0));
-			Node node3 = network.createAndAddNode(Id.create("3", Node.class), new Coord(0.0, 1000.0));
-			Node node4 = network.createAndAddNode(Id.create("4", Node.class), new Coord(0.0, 1100.0));
+			Node node1 = NetworkUtils.createAndAddNode(network, Id.create("1", Node.class), new Coord(x, 0.0));
+			Node node2 = NetworkUtils.createAndAddNode(network, Id.create("2", Node.class), new Coord(0.0, 0.0));
+			Node node3 = NetworkUtils.createAndAddNode(network, Id.create("3", Node.class), new Coord(0.0, 1000.0));
+			Node node4 = NetworkUtils.createAndAddNode(network, Id.create("4", Node.class), new Coord(0.0, 1100.0));
 
 			Set<String> allowedModes = new HashSet<String>(); allowedModes.addAll(Arrays.asList("car","bike"));
+			final Node fromNode = node1;
+			final Node toNode = node2;
 
-			link1 = network.createAndAddLink(Id.create("1", Link.class), node1, node2, 100, MAX_SPEED_ON_LINK, 60, 1, null, "22"); 
-			link2 = network.createAndAddLink(Id.create("2", Link.class), node2, node3, 1000, MAX_SPEED_ON_LINK, 60, 1, null, "22");	
-			link3 = network.createAndAddLink(Id.create("3", Link.class), node3, node4, 100, MAX_SPEED_ON_LINK, 60, 1, null, "22");
+			link1 = NetworkUtils.createAndAddLink(network,Id.create("1", Link.class), fromNode, toNode, (double) 100, MAX_SPEED_ON_LINK, (double) 60, (double) 1, null, "22");
+			final Node fromNode1 = node2;
+			final Node toNode1 = node3; 
+			link2 = NetworkUtils.createAndAddLink(network,Id.create("2", Link.class), fromNode1, toNode1, (double) 1000, MAX_SPEED_ON_LINK, (double) 60, (double) 1, null, "22");
+			final Node fromNode2 = node3;
+			final Node toNode2 = node4;	
+			link3 = NetworkUtils.createAndAddLink(network,Id.create("3", Link.class), fromNode2, toNode2, (double) 100, MAX_SPEED_ON_LINK, (double) 60, (double) 1, null, "22");
 
 			population = scenario.getPopulation();
 		}
 	}
-	private static class PersonLinkTravelTimeEventHandler implements LinkEnterEventHandler, LinkLeaveEventHandler {
+	private static class VehicleLinkTravelTimeHandler implements LinkEnterEventHandler, LinkLeaveEventHandler {
 
-		private final Map<Id<Person>, Map<Id<Link>, Double>> personLinkTravelTimes;
+		private final Map<Id<Vehicle>, Map<Id<Link>, Double>> vehicleLinkTravelTimes;
 
-		public PersonLinkTravelTimeEventHandler(Map<Id<Person>, Map<Id<Link>, Double>> agentTravelTimes) {
-			this.personLinkTravelTimes = agentTravelTimes;
+		public VehicleLinkTravelTimeHandler(Map<Id<Vehicle>, Map<Id<Link>, Double>> agentTravelTimes) {
+			this.vehicleLinkTravelTimes = agentTravelTimes;
 		}
 
 		@Override
 		public void handleEvent(LinkEnterEvent event) {
-			Map<Id<Link>, Double> travelTimes = this.personLinkTravelTimes.get(Id.createPersonId(event.getVehicleId()));
+			Map<Id<Link>, Double> travelTimes = this.vehicleLinkTravelTimes.get(event.getVehicleId());
 			if (travelTimes == null) {
 				travelTimes = new HashMap<Id<Link>, Double>();
-				this.personLinkTravelTimes.put(Id.createPersonId(event.getVehicleId()), travelTimes);
+				this.vehicleLinkTravelTimes.put(event.getVehicleId(), travelTimes);
 			}
 			travelTimes.put(event.getLinkId(), Double.valueOf(event.getTime()));
 		}
 
 		@Override
 		public void handleEvent(LinkLeaveEvent event) {
-			Map<Id<Link>, Double> travelTimes = this.personLinkTravelTimes.get(Id.createPersonId(event.getVehicleId()));
+			Map<Id<Link>, Double> travelTimes = this.vehicleLinkTravelTimes.get(event.getVehicleId());
 			if (travelTimes != null) {
 				Double d = travelTimes.get(event.getLinkId());
 				if (d != null) {

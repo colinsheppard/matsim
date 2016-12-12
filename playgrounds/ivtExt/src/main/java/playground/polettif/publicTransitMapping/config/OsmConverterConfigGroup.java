@@ -37,8 +37,10 @@ import java.util.Set;
 
 /**
  * Config group for osm conversion {@link OsmMultimodalNetworkConverter}
+ *
  * @author polettif
  */
+@Deprecated
 public class OsmConverterConfigGroup extends ReflectiveConfigGroup {
 
 	public static final String GROUP_NAME = "OsmConverter";

@@ -19,10 +19,7 @@
  * *********************************************************************** */
 package playground.benjamin.scenarios.manteuffel;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -36,13 +33,7 @@ import org.matsim.core.events.EventsReaderXMLv1;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.transitSchedule.api.TransitLine;
-import org.matsim.vehicles.Vehicle;
-import org.matsim.vehicles.VehicleType;
-import org.matsim.vehicles.VehicleUtils;
-import org.matsim.vehicles.VehicleWriterV1;
-import org.matsim.vehicles.Vehicles;
-
-import playground.vsp.analysis.modules.ptLines2PaxAnalysis.TransitLines2PaxCounts;
+import org.matsim.vehicles.*;
 
 
 /**
@@ -52,18 +43,26 @@ import playground.vsp.analysis.modules.ptLines2PaxAnalysis.TransitLines2PaxCount
 public class ManteuffelEmissionVehicleGenerator {
 	private static final Logger logger = Logger.getLogger(ManteuffelEmissionVehicleGenerator.class);
 	
-	private final String populationFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.output_plans.xml.gz";
-	private final String netFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.output_network.xml.gz";
-	private final String transitVehicleFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.output_transitVehicles.xml.gz";
-	private final String transitScheduleFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.output_transitSchedule.xml.gz";
-	private final String eventsFile = "../../runs-svn/manteuffelstrasse/bau/ITERS/it.30/bvg.run190.25pct.dilution001.network20150727.v2.static.30.events.xml.gz";
+//	private final String populationFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.output_plans.xml.gz";
+//	private final String netFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.output_network.xml.gz";
+//	private final String transitVehicleFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.output_transitVehicles.xml.gz";
+//	private final String transitScheduleFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.output_transitSchedule.xml.gz";
+//	private final String eventsFile = "../../runs-svn/manteuffelstrasse/bau/ITERS/it.30/bvg.run190.25pct.dilution001.network20150727.v2.static.30.events.xml.gz";
+//	
+//	private final String outputVehicleFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.emissionVehicles.xml.gz";
+
+	private final String populationFile = "../../../runs-svn/berlin-an-time/input/population_1agent.xml";
+	private final String netFile = "../../../runs-svn/berlin-an-time/input/network_withRoadTypes.xml";
+	private final String transitVehicleFile = null;
+	private final String transitScheduleFile = null;
+	private final String eventsFile = null;
 	
-	private final String outputVehicleFile = "../../runs-svn/manteuffelstrasse/bau/bvg.run190.25pct.dilution001.network20150727.v2.static.emissionVehicles.xml.gz";
+	private final String outputVehicleFile = "../../../runs-svn/berlin-an-time/input/population_1agent.emissionVehicle.xml.gz";
 	
 
 	private void run() {
 		Config config = ConfigUtils.createConfig();
-		config.scenario().setUseTransit(true);
+		config.transit().setUseTransit(true);
 		config.plans().setInputFile(populationFile);
 		config.network().setInputFile(netFile);
 		config.transit().setVehiclesFile(transitVehicleFile);
@@ -122,7 +121,10 @@ public class ManteuffelEmissionVehicleGenerator {
 						vehicleAttributes.getHbefaSizeClass() + ";" + 
 						vehicleAttributes.getHbefaEmConcept(), VehicleType.class);
 				VehicleType vehicleType = VehicleUtils.getFactory().createVehicleType(vehTypeId);
-				
+
+				// either set following or use switch in EmissionConfigGroup to use vehicle id for vehicle description. Amit sep 2016
+				vehicleType.setDescription(vehTypeId.toString());
+
 				if(!(outputVehicles.getVehicleTypes().containsKey(vehTypeId))){
 					outputVehicles.addVehicleType(vehicleType);
 				} else {
@@ -135,11 +137,11 @@ public class ManteuffelEmissionVehicleGenerator {
 		}
 		
 		//===
-		Map<Id<TransitLine>, TransitLine> transitLines = scenario.getTransitSchedule().getTransitLines();
-		EventsManager eventsManager = EventsUtils.createEventsManager();
-		EventsReaderXMLv1 reader = new EventsReaderXMLv1(eventsManager);
-		eventsManager.addHandler(new ManteuffelLinkLeaveHandler(outputVehicles, transitLines));
-		reader.parse(eventsFile);
+//		Map<Id<TransitLine>, TransitLine> transitLines = scenario.getTransitSchedule().getTransitLines();
+//		EventsManager eventsManager = EventsUtils.createEventsManager();
+//		EventsReaderXMLv1 reader = new EventsReaderXMLv1(eventsManager);
+//		eventsManager.addHandler(new ManteuffelLinkLeaveHandler(outputVehicles, transitLines));
+//		reader.readFile(eventsFile);
 		
 		//=== TODO: fix this?
 //		List<String> nonCondideredPersons = new ArrayList<>();

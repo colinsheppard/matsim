@@ -48,13 +48,13 @@ public class TaxiQSimProvider
     private final EventsManager eventsManager;
     private final Collection<AbstractQSimPlugin> plugins;
 
-    private final Scenario scenario;
-    private final TaxiData taxiData;
-    private final TravelTime travelTime;
+    protected final Scenario scenario;
+    protected final TaxiData taxiData;
+    protected final TravelTime travelTime;
 
-    private final TaxiConfigGroup taxiCfg;
-    private final VehicleType vehicleType;
-    private final TaxiOptimizerFactory optimizerFactory;
+    protected final TaxiConfigGroup taxiCfg;
+    private final VehicleType vehicleType;//TODO resolve this by subclassing (without guice)??
+    private final TaxiOptimizerFactory optimizerFactory;//TODO resolve this by subclassing (without guice)??
 
 
     @Inject
@@ -78,10 +78,6 @@ public class TaxiQSimProvider
     @Override
     public Mobsim get()
     {
-        if (taxiCfg.isVehicleDiversion() && !taxiCfg.isOnlineVehicleTracker()) {
-            throw new IllegalStateException("Diversion requires online tracking");
-        }
-
         QSim qSim = QSimUtils.createQSim(scenario, eventsManager, plugins);
 
         TaxiOptimizer optimizer = createTaxiOptimizer(qSim);
@@ -99,7 +95,7 @@ public class TaxiQSimProvider
     }
 
 
-    private TaxiOptimizer createTaxiOptimizer(QSim qSim)
+    protected TaxiOptimizer createTaxiOptimizer(QSim qSim)
     {
         TaxiSchedulerParams schedulerParams = new TaxiSchedulerParams(taxiCfg);
         TravelDisutility travelDisutility = new TimeAsTravelDisutility(travelTime);
@@ -113,14 +109,14 @@ public class TaxiQSimProvider
     }
 
 
-    private PassengerEngine createPassengerEngine(TaxiOptimizer optimizer)
+    protected PassengerEngine createPassengerEngine(TaxiOptimizer optimizer)
     {
         return new PassengerEngine(TaxiModule.TAXI_MODE, eventsManager, new TaxiRequestCreator(),
                 optimizer, taxiData, scenario.getNetwork());
     }
 
 
-    private VrpAgentSource createVrpAgentSource(TaxiOptimizer optimizer, QSim qSim,
+    protected VrpAgentSource createVrpAgentSource(TaxiOptimizer optimizer, QSim qSim,
             PassengerEngine passengerEngine, VehicleType vehicleType)
     {
         LegCreator legCreator = taxiCfg.isOnlineVehicleTracker() ? //

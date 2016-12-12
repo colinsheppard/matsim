@@ -26,17 +26,21 @@ import java.util.Random;
 
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.contrib.dvrp.data.Vehicle;
 import org.matsim.contrib.dvrp.data.VehicleImpl;
 import org.matsim.contrib.dvrp.data.file.VehicleWriter;
 import org.matsim.contrib.util.random.WeightedRandomSelection;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.MatsimRandom;
-import org.matsim.core.network.MatsimNetworkReader;
-import org.matsim.core.network.NetworkImpl;
+import org.matsim.core.network.NetworkUtils;
+import org.matsim.core.network.io.MatsimNetworkReader;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.geotools.MGC;
+import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.io.tabularFileParser.TabularFileHandler;
 import org.matsim.core.utils.io.tabularFileParser.TabularFileParser;
 import org.matsim.core.utils.io.tabularFileParser.TabularFileParserConfig;
@@ -61,9 +65,9 @@ public class PopulationBasedTaxiVehicleCreator
 //	private String populationData = "../../../shared-svn/projects/vw_rufbus/av_simulation/demand/zones/pop.csv";
 //	
     
-	private String networkFile = "../../../shared-svn/projects/audi_av/scenario/networkc.xml.gz";
+	private String networkFile = "../../../shared-svn/studies/jbischoff/multimodal/berlin/input/10pct/network.final10pct_car.xml.gz";
 	private String shapeFile = "../../../shared-svn/projects/audi_av/shp/Planungsraum.shp";
-	private String vehiclesFilePrefix = "../../../shared-svn/projects/audi_av/scenario/flowpaper/vehicles/taxi_vehicles_";
+	private String vehiclesFilePrefix = "../../../shared-svn/studies/jbischoff/multimodal/berlin/input/10pct/vehicles/v";
 	private String populationData = "../../../shared-svn/projects/audi_av/shp/bevoelkerung.txt";
 	
 	
@@ -72,10 +76,11 @@ public class PopulationBasedTaxiVehicleCreator
 	private Random random = MatsimRandom.getRandom();
     private List<Vehicle> vehicles = new ArrayList<>();
     private final WeightedRandomSelection<String> wrs;
+    CoordinateTransformation ct; 
 
 	
 	public static void main(String[] args) {
-		for (int i = 1100; i<=11000 ; i=i+1100 ){
+		for (int i = 4500; i<=5400 ; i=i+100 ){
 			PopulationBasedTaxiVehicleCreator tvc = new PopulationBasedTaxiVehicleCreator();
 			System.out.println(i);
 			tvc.run(i);
@@ -89,6 +94,7 @@ public class PopulationBasedTaxiVehicleCreator
 		this.geometry = JbUtils.readShapeFileAndExtractGeometry(shapeFile, "SCHLUESSEL");	
 //		this.geometry = JbUtils.readShapeFileAndExtractGeometry(shapeFile, "ID"); //wolfsburg	
 		this.wrs = new WeightedRandomSelection<>();
+		this.ct = TransformationFactory.getCoordinateTransformation("EPSG:25833", TransformationFactory.DHDN_GK4);
         readPopulationData();
 	}
 	
@@ -114,9 +120,11 @@ public class PopulationBasedTaxiVehicleCreator
 	private void run(int amount) {
 	    
 		for (int i = 0 ; i< amount; i++){
+			Link link ;
 		Point p = TaxiDemandWriter.getRandomPointInFeature(random, geometry.get(wrs.select()));
-		Link link = ((NetworkImpl) scenario.getNetwork()).getNearestLinkExactly(MGC.point2Coord(p));
-        Vehicle v = new VehicleImpl(Id.create("rt"+i, Vehicle.class), link, 5, Math.round(1), Math.round(25*3600));
+		link = NetworkUtils.getNearestLinkExactly(((Network) scenario.getNetwork()),ct.transform( MGC.point2Coord(p)));
+		
+        Vehicle v = new VehicleImpl(Id.create("rt"+i, Vehicle.class), link, 5, Math.round(1), Math.round(36*3600));
         vehicles.add(v);
 
 		}

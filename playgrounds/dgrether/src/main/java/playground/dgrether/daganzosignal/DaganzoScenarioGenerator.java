@@ -29,6 +29,8 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.population.Activity;
+import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.Population;
@@ -42,22 +44,20 @@ import org.matsim.core.config.groups.ControlerConfigGroup.EventsFileFormat;
 import org.matsim.core.config.groups.PlanCalcScoreConfigGroup.ActivityParams;
 import org.matsim.core.config.groups.StrategyConfigGroup;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
-import org.matsim.core.network.MatsimNetworkReader;
 import org.matsim.core.network.NetworkUtils;
-import org.matsim.core.population.ActivityImpl;
-import org.matsim.core.population.LegImpl;
+import org.matsim.core.network.io.MatsimNetworkReader;
 import org.matsim.core.population.routes.LinkNetworkRouteImpl;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.lanes.data.Lane;
+import org.matsim.lanes.data.Lanes;
+import org.matsim.lanes.data.LanesWriter;
 import org.matsim.lanes.data.v11.LaneData11;
 import org.matsim.lanes.data.v11.LaneDefinitions11;
 import org.matsim.lanes.data.v11.LaneDefinitions11Impl;
 import org.matsim.lanes.data.v11.LaneDefinitionsFactory11;
 import org.matsim.lanes.data.v11.LaneDefinitionsV11ToV20Conversion;
 import org.matsim.lanes.data.v11.LanesToLinkAssignment11;
-import org.matsim.lanes.data.v20.Lane;
-import org.matsim.lanes.data.v20.Lanes;
-import org.matsim.lanes.data.v20.LaneDefinitionsWriter20;
 
 import playground.dgrether.DgPaths;
 import playground.dgrether.DgPlaygroundJobfileCreator;
@@ -240,7 +240,7 @@ public class DaganzoScenarioGenerator {
 			config.network().setLaneDefinitionsFile(LANESOUTPUTFILE);
 			//create the lanes and write them
 			Lanes lanes = createLanes(scenario);
-			LaneDefinitionsWriter20 laneWriter = new LaneDefinitionsWriter20(lanes);
+			LanesWriter laneWriter = new LanesWriter(lanes);
 			laneWriter.write(LANESOUTPUTFILE);
 		}
 		if (isUseSignalSystems) {
@@ -324,11 +324,11 @@ public class DaganzoScenarioGenerator {
 //    if ((i - 1) % 3 == 0) {
 //      homeEndTime++;
 //    }
-    ActivityImpl act1 = (ActivityImpl) factory.createActivityFromLinkId("h", Id.create(1, Link.class));
+    Activity act1 = (Activity) factory.createActivityFromLinkId("h", Id.create(1, Link.class));
     act1.setEndTime(homeEndTime);
     plan.addActivity(act1);
     // leg to home
-    LegImpl leg = (LegImpl) factory.createLeg(TransportMode.car);
+    Leg leg = (Leg) factory.createLeg(TransportMode.car);
     LinkNetworkRouteImpl route = new LinkNetworkRouteImpl(Id.create(1, Link.class), Id.create(7, Link.class));
     if (useAlternativeRoute) {
       route.setLinkIds(Id.create(1, Link.class), NetworkUtils.getLinkIds("2 3 5 6"), Id.create(7, Link.class));
@@ -340,7 +340,7 @@ public class DaganzoScenarioGenerator {
 
     plan.addLeg(leg);
 
-    ActivityImpl act2 = (ActivityImpl) factory.createActivityFromLinkId("h", Id.create(7, Link.class));
+    Activity act2 = (Activity) factory.createActivityFromLinkId("h", Id.create(7, Link.class));
     act2.setLinkId(Id.create(7, Link.class));
     plan.addActivity(act2);
     return plan;

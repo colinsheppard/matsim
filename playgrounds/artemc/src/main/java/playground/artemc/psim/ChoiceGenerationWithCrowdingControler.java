@@ -229,7 +229,7 @@ public class ChoiceGenerationWithCrowdingControler implements BeforeMobsimListen
 		eventsManager.addHandler(crowdingEventsHandler);
 		eventsManager.addHandler(transferDelayInVehicleEventHandler);
 		eventsManager.addHandler(capacityDelayEventHandler);
-		reader.parse(eventsFile);
+		reader.readFile(eventsFile);
 
 		HashMap<Integer, Double> avgCrowdingDisutility = new HashMap<Integer, Double>();
 		HashMap<Integer, Double> avgCrowdingExternality = new HashMap<Integer, Double>();
@@ -267,7 +267,7 @@ public class ChoiceGenerationWithCrowdingControler implements BeforeMobsimListen
 			controler.getEvents().addHandler(marginalCostPricingPtPsimHandler);
 		}
 
-		pSimFactory = new PSimFactory();
+		pSimFactory = new PSimFactory(controler.getScenario(),eventsManager);
 		controler.addOverridingModule(new AbstractModule() {
 			@Override
 			public void install() {

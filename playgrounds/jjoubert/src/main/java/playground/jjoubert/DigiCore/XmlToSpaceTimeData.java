@@ -50,7 +50,7 @@ public class XmlToSpaceTimeData {
 		for(String s : files){
 			/* Read in the Digicore vehicle's xml file. */
 			DigicoreVehicleReader_v1 dvr = new DigicoreVehicleReader_v1();
-			dvr.parse(args[0] + s + ".xml.gz");
+			dvr.readFile(args[0] + s + ".xml.gz");
 			DigicoreVehicle vehicle = dvr.getVehicle(); 
 			
 			/* Create the writer. */
@@ -59,7 +59,7 @@ public class XmlToSpaceTimeData {
 				for(DigicoreChain chain : vehicle.getChains()){
 					double startTime = chain.getFirstMajorActivity().getEndTimeGregorianCalendar().getTimeInMillis()/1000;
 					double endTime = chain.getLastMajorActivity().getStartTimeGregorianCalendar().getTimeInMillis()/1000;
-					int activities = chain.getNumberOfMinorActivities();
+					int activities = chain.getMinorActivities().size();
 					
 					bw.write(String.format("%.0f,%.0f,%d\n", startTime, endTime, activities));
 				}

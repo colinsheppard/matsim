@@ -11,7 +11,9 @@ import org.matsim.contrib.accessibility.CSVWriter;
 import org.matsim.facilities.ActivityFacilities;
 import org.matsim.facilities.ActivityFacilitiesImpl;
 import org.matsim.facilities.ActivityFacility;
+import org.matsim.facilities.FacilitiesUtils;
 import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.geometry.BoundingBox;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -103,6 +105,9 @@ public final class GridUtils {
 		return measuringPoints;
 	}
 	
+	public static ActivityFacilitiesImpl createGridLayerByGridSizeByBoundingBoxV2( org.matsim.contrib.matrixbasedptrouter.utils.BoundingBox box, double gridSize ) {
+		return createGridLayerByGridSizeByBoundingBoxV2( box.getXMin(), box.getYMin(), box.getXMax(), box.getYMax(), gridSize) ;
+	}
 	
 	/**
 	 * creates measuring points for accessibility computation
@@ -121,7 +126,8 @@ public final class GridUtils {
 		int skippedPoints = 0;
 		int setPoints = 0;
 
-		ActivityFacilitiesImpl measuringPoints = new ActivityFacilitiesImpl("accessibility measuring points");
+//		ActivityFacilitiesImpl measuringPoints = new ActivityFacilitiesImpl("accessibility measuring points");
+		ActivityFacilitiesImpl measuringPoints = (ActivityFacilitiesImpl) FacilitiesUtils.createActivityFacilities("accessibility measuring points");
 		
 		// goes step by step from the min x and y coordinate to max x and y coordinate
 		for(double x = minX; x <maxX; x += gridSize) {

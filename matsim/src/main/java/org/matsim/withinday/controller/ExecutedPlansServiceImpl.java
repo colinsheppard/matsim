@@ -29,10 +29,11 @@ import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.Population;
+import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.Config;
-import org.matsim.core.controler.ControlerListenerManager;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.controler.events.AfterMobsimEvent;
 import org.matsim.core.controler.listener.AfterMobsimListener;
@@ -40,9 +41,7 @@ import org.matsim.core.gbl.Gbl;
 import org.matsim.core.mobsim.framework.MobsimAgent;
 import org.matsim.core.mobsim.qsim.agents.PersonDriverAgentImpl;
 import org.matsim.core.mobsim.qsim.agents.WithinDayAgentUtils;
-import org.matsim.core.population.PersonImpl;
 import org.matsim.core.population.PersonUtils;
-import org.matsim.core.population.PopulationWriter;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.scoring.ExperiencedPlansService;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
@@ -51,7 +50,7 @@ import org.matsim.withinday.mobsim.MobsimDataProvider;
 
 /**
  * Take the plans that the agents have after within-day replanning, and write them to file.
- * <br/>
+ * <br>
  * Not the same as the {@link ExperiencedPlansService}, since that is based on the events.
  * 
  * @author (of documentation) nagel
@@ -100,7 +99,7 @@ public class ExecutedPlansServiceImpl implements AfterMobsimListener, ExecutedPl
 				experiencedPerson.setSelectedPlan(plan);
 				
 				// copy attributes if possible
-				if (person instanceof PersonImpl && experiencedPerson instanceof PersonImpl) {
+				if (person instanceof Person && experiencedPerson instanceof Person) {
 					PersonUtils.setAge(experiencedPerson, PersonUtils.getAge(person));
 					PersonUtils.setCarAvail(experiencedPerson, PersonUtils.getCarAvail(person));
 					PersonUtils.setEmployed(experiencedPerson, PersonUtils.isEmployed(person));
@@ -114,11 +113,11 @@ public class ExecutedPlansServiceImpl implements AfterMobsimListener, ExecutedPl
 
 		// yy write this in every iteration in order to be consistent with previous design.  I think this should be changed.  kai, jun'16
 		String outputFile = controlerIO.getIterationFilename(event.getIteration(), EXECUTEDPLANSFILE);
-		writePlans( outputFile ) ;
+		writeExecutedPlans( outputFile ) ;
 	}
 
 	@Override
-	public void writePlans(String outputFile) {
+	public void writeExecutedPlans(String outputFile) {
 		final Config config = scenario.getConfig();
 		final String inputCRS = config.plans().getInputCRS();
 		final String internalCRS = config.global().getCoordinateSystem();
@@ -139,7 +138,7 @@ public class ExecutedPlansServiceImpl implements AfterMobsimListener, ExecutedPl
 	}
 
 	@Override
-	public Map<Id<Person>, Plan> getAgentRecords() {
+	public Map<Id<Person>, Plan> getExecutedPlans() {
 		Map<Id<Person>,Plan> map = new HashMap<>() ;
 		for ( Person pp : this.experiencedPopulation.getPersons().values() ) {
 			map.put( pp.getId(), pp.getSelectedPlan() ) ;

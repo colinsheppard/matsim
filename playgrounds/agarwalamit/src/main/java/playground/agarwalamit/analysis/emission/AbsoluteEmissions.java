@@ -28,7 +28,7 @@ import java.util.TreeMap;
 import org.matsim.core.utils.io.IOUtils;
 
 import playground.agarwalamit.utils.LoadMyScenarios;
-import playground.benjamin.internalization.EmissionCostFactors;
+import playground.vsp.airPollution.flatEmissions.EmissionCostFactors;
 import playground.vsp.analysis.modules.emissionsAnalyzer.EmissionsAnalyzer;
 
 /**
@@ -52,7 +52,7 @@ public class AbsoluteEmissions {
 
 		SortedMap<String, SortedMap<String, Double>> emissions = new TreeMap<>();
 		SortedMap<String, Double> emissionCost = new TreeMap<>();
-		Set<String> pollutants = new HashSet<String>();
+		Set<String> pollutants = new HashSet<>();
 
 		for(String runCase:runCases){
 			SortedMap<String, Double> em = calculateTotalEmissions(runCase);

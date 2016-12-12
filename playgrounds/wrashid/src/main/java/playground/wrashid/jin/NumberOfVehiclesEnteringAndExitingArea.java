@@ -19,8 +19,8 @@ import org.matsim.api.core.v01.events.handler.ActivityEndEventHandler;
 import org.matsim.api.core.v01.events.handler.LinkEnterEventHandler;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.Person;
-import org.matsim.contrib.parking.lib.GeneralLib;
-import org.matsim.contrib.parking.lib.obj.DoubleValueHashMap;
+import org.matsim.contrib.parking.parkingchoice.lib.GeneralLib;
+import org.matsim.contrib.parking.parkingchoice.lib.obj.DoubleValueHashMap;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.events.EventsReaderXMLv1;
 import org.matsim.core.events.EventsUtils;
@@ -44,7 +44,7 @@ public class NumberOfVehiclesEnteringAndExitingArea {
 
 		EventsReaderXMLv1 reader = new EventsReaderXMLv1(events);
 
-		reader.parse(eventsFile);
+		reader.readFile(eventsFile);
 
 		// handler.printOutput("C:\\tmp\\New folder\\Area1_60SecBin.txt");
 		handler.printOutput();

@@ -29,10 +29,11 @@ import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.router.util.LeastCostPathCalculator;
+import org.matsim.core.utils.collections.CollectionUtils;
 import org.matsim.pt.transitSchedule.api.*;
-import playground.polettif.publicTransitMapping.config.PublicTransitMappingConfigGroup;
+import playground.polettif.publicTransitMapping.config.PublicTransitMappingStrings;
 import playground.polettif.publicTransitMapping.mapping.PTMapperUtils;
-import playground.polettif.publicTransitMapping.mapping.router.Router;
+import playground.polettif.publicTransitMapping.mapping.networkRouter.Router;
 import playground.polettif.publicTransitMapping.tools.NetworkTools;
 import playground.polettif.publicTransitMapping.tools.ScheduleTools;
 
@@ -42,7 +43,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Provides methods for rerouting and adapting schedules via a csv "command file".
+ * Implemenation of a schedule editor. Provides methods for
+ * rerouting and adapting schedules via a csv "command file".
  *
  * @author polettif
  */
@@ -60,8 +62,8 @@ public class BasicScheduleEditor implements ScheduleEditor {
 
 	private final ParentStops parentStops;
 
-	private static final String SUFFIX_PATTERN = PublicTransitMappingConfigGroup.SUFFIX_CHILD_STOP_FACILITIES_REGEX;
-	private static final String SUFFIX = PublicTransitMappingConfigGroup.SUFFIX_CHILD_STOP_FACILITIES;
+	private static final String SUFFIX_PATTERN = PublicTransitMappingStrings.SUFFIX_CHILD_STOP_FACILITIES_REGEX;
+	private static final String SUFFIX = PublicTransitMappingStrings.SUFFIX_CHILD_STOP_FACILITIES;
 
 	// commands
 	public static final String RR_VIA_LINK = "rerouteViaLink";
@@ -113,7 +115,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 
 		String[] line = reader.readNext();
 		while(line != null) {
-			log.info(line);
+			log.info(CollectionUtils.arrayToString(line));
 			executeCmdLine(line);
 			line = reader.readNext();
 		}
@@ -132,7 +134,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 			if(cmd.length == 5) {
 				rerouteViaLink(getTransitRoute(cmd[1], cmd[2]), cmd[3], cmd[4]);
 			} else {
-				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0]);
+				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0] + "! 5 needed, " + cmd.length + " given");
 			}
 		}
 
@@ -144,7 +146,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 			if(cmd.length == 5) {
 				rerouteFromStop(getTransitRoute(cmd[1], cmd[2]), cmd[3], cmd[4]);
 			} else {
-				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0]);
+				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0] + "! 5 needed, " + cmd.length + " given");
 			}
 		}
 		/**
@@ -154,7 +156,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 		 * ["changeRefLink"] ["allTransitRoutesOnLink"] [linkId] [ParentId] [newlinkId]
 		 */
 		else if(CHANGE_REF_LINK.equals(cmd[0])) {
-			if(cmd.length == 3) {
+			if("".equals(cmd[3])) {
 				changeRefLink(cmd[1], cmd[2]);
 			} else if(cmd.length == 5) {
 				switch (cmd[1]) {
@@ -168,7 +170,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 						changeRefLink(getTransitRoute(cmd[1], cmd[2]), cmd[3], cmd[4]);
 				}
 			} else {
-				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0]);
+				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0] + "! 3 or 5 needed, " + cmd.length + " given");
 			}
 		}
 
@@ -182,7 +184,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 				addLink(cmd[1], cmd[2], cmd[3], cmd[4]);
 				refreshSchedule();
 			} else {
-				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0]);
+				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0] + "! 5 needed, " + cmd.length + " given");
 			}
 		}
 
@@ -191,10 +193,10 @@ public class BasicScheduleEditor implements ScheduleEditor {
 		 * [refreshTransitRoute] [transitLineId] [transitRouteId]
 		 */
 		else if(REFRESH_TRANSIT_ROUTE.equals(cmd[0])) {
-			if(cmd.length == 3) {
+			if(cmd.length >= 3) {
 				refreshTransitRoute(getTransitRoute(cmd[1], cmd[2]));
 			} else {
-				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0]);
+				throw new IllegalArgumentException("Incorrect number of arguments for " + cmd[0] + "! 3 needed, " + cmd.length + " given");
 			}
 		}
 
@@ -274,7 +276,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 		TransitRouteStop toRouteStop = routeStops.get(routeStops.indexOf(fromRouteStop) + 1);
 
 		Id<Link> cutFromLinkId = fromRouteStop.getStopFacility().getLinkId();
-		Link cutFromLInk = network.getLinks().get(cutFromLinkId);
+		Link cutFromLink = network.getLinks().get(cutFromLinkId);
 		Id<Link> cutToLinkId = toRouteStop.getStopFacility().getLinkId();
 		Link cutToLink = network.getLinks().get(cutToLinkId);
 		Link viaLink = network.getLinks().get(viaLinkId);
@@ -282,8 +284,8 @@ public class BasicScheduleEditor implements ScheduleEditor {
 		NetworkRoute routeBeforeCut = transitRoute.getRoute().getSubRoute(transitRoute.getRoute().getStartLinkId(), cutFromLinkId);
 		NetworkRoute routeAfterCut = transitRoute.getRoute().getSubRoute(cutToLinkId, transitRoute.getRoute().getEndLinkId());
 
-		LeastCostPathCalculator.Path path1 = router.calcLeastCostPath(cutFromLInk, viaLink);
-		LeastCostPathCalculator.Path path2 = router.calcLeastCostPath(viaLink, cutToLink);
+		LeastCostPathCalculator.Path path1 = router.calcLeastCostPath(cutFromLink.getToNode(), viaLink.getFromNode());
+		LeastCostPathCalculator.Path path2 = router.calcLeastCostPath(viaLink.getToNode(), cutToLink.getFromNode());
 
 		List<Id<Link>> newLinkSequence = new ArrayList<>();
 		if(path1 != null && path2 != null) {
@@ -531,7 +533,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 	 */
 	private class ParentStops {
 
-		Map<String, ParentStopFacility> fac = new HashMap<>();
+		final Map<String, ParentStopFacility> fac = new HashMap<>();
 
 		public ParentStops() {
 			for(TransitStopFacility stopFacility : schedule.getFacilities().values()) {
@@ -562,11 +564,11 @@ public class BasicScheduleEditor implements ScheduleEditor {
 	 * not actual facilities in the schedule)
 	 */
 	private class ParentStopFacility {
-		String id;
-		String name;
-		Coord coord;
+		final String id;
+		final String name;
+		final Coord coord;
 
-		Map<Id<Link>, TransitStopFacility> children = new HashMap<>();
+		final Map<Id<Link>, TransitStopFacility> children = new HashMap<>();
 
 		public ParentStopFacility(String id, String name, Coord coord) {
 			this.id = id;
@@ -589,7 +591,7 @@ public class BasicScheduleEditor implements ScheduleEditor {
 		/**
 		 * Adds a child stop facility for the given refLink, creates
 		 * a new one if needed.
-		 * @param refLinkId
+		 * @param refLinkId the id of the ref link
 		 * @return the childStopFacility
 		 */
 		public TransitStopFacility getChildStopFacility(Id<Link> refLinkId) {

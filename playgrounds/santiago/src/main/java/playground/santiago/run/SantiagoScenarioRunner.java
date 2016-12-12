@@ -29,9 +29,13 @@ import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
+import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.contrib.cadyts.car.CadytsCarModule;
+import org.matsim.contrib.cadyts.car.CadytsContext;
+import org.matsim.contrib.cadyts.general.CadytsScoring;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
@@ -39,9 +43,9 @@ import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.MatsimServices;
 import org.matsim.core.controler.OutputDirectoryHierarchy.OverwriteFileSetting;
+import org.matsim.core.events.handler.EventHandler;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.network.algorithms.TransportModeNetworkFilter;
-import org.matsim.core.population.ActivityImpl;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.core.replanning.PlanStrategy;
 import org.matsim.core.replanning.PlanStrategyImpl.Builder;
@@ -50,12 +54,22 @@ import org.matsim.core.replanning.modules.SubtourModeChoice;
 import org.matsim.core.replanning.selectors.RandomPlanSelector;
 import org.matsim.core.router.TripRouter;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.scoring.ScoringFunction;
+import org.matsim.core.scoring.ScoringFunctionFactory;
+import org.matsim.core.scoring.SumScoringFunction;
+import org.matsim.core.scoring.functions.CharyparNagelActivityScoring;
+import org.matsim.core.scoring.functions.CharyparNagelAgentStuckScoring;
+import org.matsim.core.scoring.functions.CharyparNagelLegScoring;
+import org.matsim.core.scoring.functions.CharyparNagelScoringParameters;
+import org.matsim.core.scoring.functions.CharyparNagelScoringParametersForPerson;
 import org.matsim.roadpricing.ControlerDefaultsWithRoadPricingModule;
 import org.matsim.roadpricing.RoadPricingConfigGroup;
-
-import com.google.inject.Binder;
+import org.matsim.roadpricing.RoadPricingModule;
 
 import playground.santiago.SantiagoScenarioConstants;
+import playground.vsp.congestion.controler.MarginalCongestionPricingContolerListener;
+import playground.vsp.congestion.handlers.CongestionHandlerImplV3;
+import playground.vsp.congestion.handlers.TollHandler;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -65,76 +79,115 @@ import javax.inject.Provider;
  *
  */
 public class SantiagoScenarioRunner {
-	private static String inputPath = "../../../runs-svn/santiago/policy1/input/";
-//	private static String inputPath = "net/ils4/lcamus/runs-svn/santiago/cluster_2/input/";
-	private static boolean doModeChoice = true;
-//	private static boolean mapActs2Links = true;
-	private static boolean mapActs2Links = false;
-	
-	private static boolean pricing = false;
-	private static double sigma = 3.0;
+		
 	
 	private static String configFile;
+	private static int policy;
+	private static int sigma;	
+	private static boolean doModeChoice; 
+	private static boolean mapActs2Links;
+	private static String gantriesFile;
+
+	private static String caseName = "baseCase1pct";
+	private static String inputPath = "../../../runs-svn/santiago/"+caseName+"/";
 	
-	public static void main(String args[]){
+	
+	
+	public static void main(String args[]){		
 
-		if(args.length==0){
-			configFile = inputPath + "new-input/randomized_config_final.xml";
-//			configFile = inputPath + "config_triangleCordon.xml";
-		} else {
-			configFile = args[0];
-			mapActs2Links = Boolean.parseBoolean(args[1]);
-			pricing = Boolean.parseBoolean(args[2]);
-		}
-		
-		Config config = ConfigUtils.loadConfig(configFile);
-//		config.controler().setOutputDirectory(outputDirectory);
-//		config.qsim().setNumberOfThreads(1);
-//		config.parallelEventHandling().setNumberOfThreads(1);
-		Scenario scenario = ScenarioUtils.loadScenario(config);
-
-//		config.controler().setOverwriteFileSetting(OverwriteFileSetting.deleteDirectoryIfExists);
-		config.controler().setOverwriteFileSetting(OverwriteFileSetting.failIfDirectoryExists);
-		Controler controler = new Controler(scenario);
-		
-		// adding other network modes than car requires some router; here, the same values as for car are used
-		setNetworkModeRouting(controler);
-		
-		// adding pt fare
-		controler.getEvents().addHandler(new PTFareHandler(controler, doModeChoice, scenario.getPopulation()));
-		
-		// adding basic strategies for car and non-car users
-		setBasicStrategiesForSubpopulations(controler);
-		
-		// adding subtour mode choice strategies for car and non-car users
-		if(doModeChoice) setModeChoiceForSubpopulations(controler);
-		
-		// mapping agents' activities to links on the road network to avoid being stuck on the transit network
-		if(mapActs2Links) mapActivities2properLinks(scenario);
-		
-		if (pricing){			
+		if (args.length==6){ //ONLY FOR CMD CASES
 			
-		RoadPricingConfigGroup rpcg = ConfigUtils.addOrGetModule(config, RoadPricingConfigGroup.GROUP_NAME, RoadPricingConfigGroup.class);
-		rpcg.setTollLinksFile(inputPath + "outerCordon.xml");
-		// adding some randomness to the router so to explore more possible routes.
-		config.plansCalcRoute().setRoutingRandomness(sigma); 
-		// adding roadpricing contrib for cordon policies
-		controler.setModules(new ControlerDefaultsWithRoadPricingModule());
+			configFile = args[0]; //COMPLETE PATH TO CONFIG.
+			gantriesFile = args[1]; //COMPLETE PATH TO TOLL LINKS FILE
+			policy = Integer.parseInt(args[2]) ; //POLICY? - 0: BASE CASE, 1: CORDON.
+			sigma = Integer.parseInt(args[3]); //SIGMA. 
+			doModeChoice = Boolean.parseBoolean(args[4]); //DOMODECHOICE?
+			mapActs2Links = Boolean.parseBoolean(args[5]); //MAPACTS2LINKS?
+			
+		} else {
+		
+			configFile=inputPath + "config_" + caseName + ".xml" ; 
+			gantriesFile = inputPath + "input/gantries.xml";
+			policy=0;    
+			sigma=3 ;    
+			doModeChoice=true ; 
+			mapActs2Links=false; 
+		
+		}	
+			
+			if(policy == 1){
+				//TODO: CHANGE THE TollLinksFile IN THE CONFIG.
+			}
+			
+			Config config = ConfigUtils.loadConfig(configFile);
+			Scenario scenario = ScenarioUtils.loadScenario(config);
+			config.controler().setOverwriteFileSetting(OverwriteFileSetting.failIfDirectoryExists);
+			Controler controler = new Controler(scenario);
+			
+			// adding other network modes than car requires some router; here, the same values as for car are used
+			setNetworkModeRouting(controler);
+			
+			// adding pt fare
+			controler.getEvents().addHandler(new PTFareHandler(controler, doModeChoice, scenario.getPopulation()));
+			
+			// adding basic strategies for car and non-car users
+			setBasicStrategiesForSubpopulations(controler);
+			
+			// adding subtour mode choice strategies for car and non-car users			
+			if(doModeChoice) setModeChoiceForSubpopulations(controler);
+			
+			// mapping agents' activities to links on the road network to avoid being stuck on the transit network
+			if(mapActs2Links) mapActivities2properLinks(scenario);
+			
+			//Adding the toll links file in the config
+			RoadPricingConfigGroup rpcg = ConfigUtils.addOrGetModule(config, RoadPricingConfigGroup.GROUP_NAME, RoadPricingConfigGroup.class);
+			rpcg.setTollLinksFile(gantriesFile);
+			
+			//Adding randomness to the router, sigma = 3
+			config.plansCalcRoute().setRoutingRandomness(sigma); 
+
+			controler.addOverridingModule(new RoadPricingModule());	
+			controler.addOverridingModule(new CadytsCarModule());
+
+			// include cadyts into the plan scoring (this will add the cadyts corrections to the scores):
+			controler.setScoringFunctionFactory(new ScoringFunctionFactory() {
+				@Inject CadytsContext cadytsContext;
+				@Inject CharyparNagelScoringParametersForPerson parameters;
+				@Override
+				public ScoringFunction createNewScoringFunction(Person person) {
+					final CharyparNagelScoringParameters params = parameters.getScoringParameters(person);
+					
+					SumScoringFunction scoringFunctionAccumulator = new SumScoringFunction();
+					scoringFunctionAccumulator.addScoringFunction(new CharyparNagelLegScoring(params, controler.getScenario().getNetwork()));
+					scoringFunctionAccumulator.addScoringFunction(new CharyparNagelActivityScoring(params)) ;
+					scoringFunctionAccumulator.addScoringFunction(new CharyparNagelAgentStuckScoring(params));
+
+					final CadytsScoring<Link> scoringFunction = new CadytsScoring<>(person.getSelectedPlan(), config, cadytsContext);
+					scoringFunction.setWeightOfCadytsCorrection(30. * config.planCalcScore().getBrainExpBeta()) ;
+					scoringFunctionAccumulator.addScoringFunction(scoringFunction );
+
+					return scoringFunctionAccumulator;
+				}
+			}) ;
+			
+			
+			
+			//Run!
+			controler.run();		
+			
+			
+	}
+	
 	
 
-		
-		}
-		
-		controler.run();
-	}
-
+	
 	private static void mapActivities2properLinks(Scenario scenario) {
 		Network subNetwork = getNetworkWithProperLinksOnly(scenario.getNetwork());
 		for(Person person : scenario.getPopulation().getPersons().values()){
 			for (Plan plan : person.getPlans()) {
 				for (PlanElement planElement : plan.getPlanElements()) {
-					if (planElement instanceof ActivityImpl) {
-						ActivityImpl act = (ActivityImpl) planElement;
+					if (planElement instanceof Activity) {
+						Activity act = (Activity) planElement;
 						Id<Link> linkId = act.getLinkId();
 						if(!(linkId == null)){
 							throw new RuntimeException("Link Id " + linkId + " already defined for this activity. Aborting... ");

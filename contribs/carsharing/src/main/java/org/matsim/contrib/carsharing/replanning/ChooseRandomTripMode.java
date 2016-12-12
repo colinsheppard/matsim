@@ -4,15 +4,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
-import org.matsim.core.population.LegImpl;
+import org.matsim.contrib.carsharing.manager.demand.membership.MembershipContainer;
+import org.matsim.contrib.carsharing.manager.demand.membership.PersonMembership;
+import org.matsim.core.population.PopulationUtils;
+import org.matsim.core.population.algorithms.PlanAlgorithm;
 import org.matsim.core.router.StageActivityTypes;
 import org.matsim.core.router.TripRouter;
 import org.matsim.core.router.TripStructureUtils;
 import org.matsim.core.router.TripStructureUtils.Trip;
-import org.matsim.population.algorithms.PlanAlgorithm;
 /**
  * @author balacm
  */
@@ -23,17 +27,20 @@ public final class ChooseRandomTripMode implements PlanAlgorithm {
 
 	private final Random rng;
 	private final Scenario scenario;
+	private MembershipContainer memberships; 
 
 	private final StageActivityTypes stageActivityTypes;
-	public ChooseRandomTripMode(final Scenario scenario, final String[] possibleModes, final Random rng, final StageActivityTypes stageActivityTypes) {
+	public ChooseRandomTripMode(final Scenario scenario, final String[] possibleModes, 
+			final Random rng, final StageActivityTypes stageActivityTypes, MembershipContainer memberships) {
 		this.possibleModes = possibleModes.clone();
 		this.rng = rng;
 		this.stageActivityTypes = stageActivityTypes;
 		this.scenario = scenario;
+		this.memberships = memberships;
 	}
 	@Override
 	public void run(Plan plan) {
-		
+		Id<Person> personId = plan.getPerson().getId();
 		List<Trip> t = TripStructureUtils.getTrips(plan, stageActivityTypes);
 		boolean ffcard = false;
 		boolean owcard = false;
@@ -41,16 +48,23 @@ public final class ChooseRandomTripMode implements PlanAlgorithm {
 		if (cnt == 0) {
 			return;
 		}
+
 		int rndIdx = this.rng.nextInt(cnt);
 		
-		for(Leg l:t.get(rndIdx).getLegsOnly()) 
-			if (l.getMode().equals( "car" ) || l.getMode().equals( "bike" ) || l.getMode().equals("twowaycarsharing"))
+		for (Leg l:t.get(rndIdx).getLegsOnly()) {
+			if (l.getMode().equals( "car" ) || l.getMode().equals( "bike" ) || l.getMode().equals("twoway")) {
 				return;
+			}
+		}
 		
-		if (Boolean.parseBoolean(((String) this.scenario.getPopulation().getPersonAttributes().getAttribute(plan.getPerson().getId().toString(), "FF_CARD"))))
-			ffcard = true;
-		if (Boolean.parseBoolean(((String) this.scenario.getPopulation().getPersonAttributes().getAttribute(plan.getPerson().getId().toString(), "OW_CARD"))))
-			owcard = true;
+		PersonMembership personMemmbership = this.memberships.getPerPersonMemberships().get(personId);
+		
+		if (personMemmbership != null) {
+			if (personMemmbership.getMembershipsPerCSType().containsKey("freefloating"))
+				ffcard = true;
+			if (personMemmbership.getMembershipsPerCSType().containsKey("oneway"))
+				owcard = true;
+		}
 		
 			//don't change the trips between the same links
 			if (!t.get(rndIdx).getOriginActivity().getLinkId().toString().equals(t.get(rndIdx).getDestinationActivity().getLinkId().toString()))
@@ -67,7 +81,7 @@ public final class ChooseRandomTripMode implements PlanAlgorithm {
 			TripRouter.insertTrip(
 					plan,
 					trip.getOriginActivity(),
-					Collections.singletonList( new LegImpl( "onewaycarsharing" ) ),
+					Collections.singletonList( PopulationUtils.createLeg("oneway") ),
 					trip.getDestinationActivity());
 		}
 		else {
@@ -75,16 +89,16 @@ public final class ChooseRandomTripMode implements PlanAlgorithm {
 			TripRouter.insertTrip(
 					plan,
 					trip.getOriginActivity(),
-					Collections.singletonList( new LegImpl( "freefloating" ) ),
+					Collections.singletonList( PopulationUtils.createLeg("freefloating") ),
 					trip.getDestinationActivity());
 		}
 		}
 		else if (possibleModes.length == 1 && possibleModes[0] != null){
-			if ((possibleModes[0].equals("freefloating") && ffcard) || (possibleModes[0].equals("onewaycarsharing") && owcard))
+			if ((possibleModes[0].equals("freefloating") && ffcard) || (possibleModes[0].equals("oneway") && owcard))
 			TripRouter.insertTrip(
 					plan,
 					trip.getOriginActivity(),
-					Collections.singletonList( new LegImpl( possibleModes[0] ) ),
+					Collections.singletonList( PopulationUtils.createLeg(possibleModes[0]) ),
 					trip.getDestinationActivity());
 		}
 		else

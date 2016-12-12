@@ -32,7 +32,7 @@ import org.matsim.core.events.EventsUtils;
 import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.utils.io.IOUtils;
 
-import playground.agarwalamit.analysis.legMode.distributions.LegModeRouteDistanceDistributionHandler;
+import playground.agarwalamit.analysis.legMode.tripDistance.LegModeRouteDistanceDistributionHandler;
 import playground.agarwalamit.utils.ListUtils;
 import playground.agarwalamit.utils.LoadMyScenarios;
 
@@ -44,19 +44,19 @@ public class ModalTravelDistance {
 
 	public static void main(String[] args) {
 
-		String dir = "/Users/amit/Documents/repos/runs-svn/detEval/emissionCongestionInternalization/output/1pct/run9/";
-		String runCases[] ={"baseCaseCtd","ei","ci","eci"};
+		String dir = "../../../../repos/runs-svn/patnaIndia/run108/jointDemand/calibration/shpNetwork/c1/";
+//		String runCases[] ={"baseCaseCtd","ei","ci","eci"};
 
-		for(String runCase : runCases){
-			new ModalTravelDistance().run(dir+runCase+"/ITERS/it.1500/1500.events.xml.gz", dir+runCase);
-		}
+//		for(String runCase : runCases){
+			new ModalTravelDistance().run(dir+"/ITERS/it.100/100.events.xml.gz", dir);
+//		}
 	}
 
 	private  void run(String eventsFile, String outputDir){
 		EventsManager events = EventsUtils.createEventsManager();
 		MatsimEventsReader reader = new MatsimEventsReader(events);
 
-		Scenario sc = LoadMyScenarios.loadScenarioFromNetworkAndConfig(outputDir+"/output_network.xml.gz", outputDir+"/output_config.xml");
+		Scenario sc = LoadMyScenarios.loadScenarioFromNetworkAndConfig(outputDir+"/output_network.xml.gz", outputDir+"/output_config.xml.gz");
 		
 		LegModeRouteDistanceDistributionHandler distHandler = new LegModeRouteDistanceDistributionHandler(sc);
 		events.addHandler(distHandler);
@@ -65,15 +65,15 @@ public class ModalTravelDistance {
 
 		SortedMap<String,Map<Id<Person>,List<Double>>> mode2Person2TripDistances = distHandler.getMode2PersonId2TravelDistances();
 
-		SortedMap<String, Double> mode2TotalTripDists = new TreeMap<String, Double>();
-		SortedMap<String, Integer> mode2NoOfLegs = new TreeMap<String, Integer>();
+		SortedMap<String, Double> mode2TotalTripDists = new TreeMap<>();
+		SortedMap<String, Integer> mode2NoOfLegs = new TreeMap<>();
 
 		for(String mode : mode2Person2TripDistances.keySet()){
 			double modeSum = 0.;
 			int modeLegs = 0;
 			for(Id<Person> p : mode2Person2TripDistances.get(mode).keySet()){
 				modeLegs += mode2Person2TripDistances.get(mode).get(p).size();
-				modeSum = ListUtils.doubleSum(mode2Person2TripDistances.get(mode).get(p));
+				modeSum += ListUtils.doubleSum(mode2Person2TripDistances.get(mode).get(p));
 			}
 			mode2TotalTripDists.put(mode, modeSum);
 			mode2NoOfLegs.put(mode, modeLegs);

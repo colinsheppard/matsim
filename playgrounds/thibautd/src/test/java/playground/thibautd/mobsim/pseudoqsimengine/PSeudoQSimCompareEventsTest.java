@@ -31,7 +31,6 @@ import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.population.ActivityImpl;
 import org.matsim.core.population.routes.LinkNetworkRouteImpl;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.router.Dijkstra;
@@ -222,7 +221,7 @@ public class PSeudoQSimCompareEventsTest {
 			for ( Plan plan : person.getPlans() ) {
 				for ( PlanElement pe : plan.getPlanElements() ) {
 					if ( pe instanceof Activity ) {
-						final ActivityImpl act = (ActivityImpl) pe;
+						final Activity act = (Activity) pe;
 						act.setCoord(
 								sc.getNetwork().getLinks().get(
 									act.getLinkId() ).getCoord() );

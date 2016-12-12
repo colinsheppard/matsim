@@ -24,11 +24,12 @@ import java.util.Map;
 
 import org.matsim.api.core.v01.Id;
 import org.matsim.core.api.internal.MatsimToplevelContainer;
+import org.matsim.utils.objectattributes.attributable.Attributable;
 
 /**
  * A topological network representation.
  */
-public interface Network extends MatsimToplevelContainer {
+public interface Network extends MatsimToplevelContainer, Attributable {
 
 	/**
 	 * Returns the builder for network elements
@@ -56,7 +57,7 @@ public interface Network extends MatsimToplevelContainer {
 	 * Returns the time period over which
 	 * the capacity of the given links has been measured.
 	 * The default is given in the dtd.  Currently (may'11) it is 1h = 3600.0 sec.
-	 * <p/>
+	 * <p></p>
 	 * Notes:<ul>
 	 * <li> There is no setter for this value since API-based network generation code should not use anything else but the default.
 	 * The default is in the network dtd, but it is an attribute under "links", not under "network".
@@ -68,7 +69,7 @@ public interface Network extends MatsimToplevelContainer {
 
 	/**
 	 * Returns the lane width of the network's links. The default is given in the dtd; current (may'11) it is 3.75m.
-	 * <p/>
+	 * <p></p>
 	 * Notes:<ul>
 	 * <li> There is no setter for this value since API-based network generation code should not use anything else but the default.
 	 * </ul>
@@ -98,5 +99,17 @@ public interface Network extends MatsimToplevelContainer {
 	 * @return the removed link, or <code>null</code> if no such link was found
 	 */
 	public Link removeLink(final Id<Link> linkId);
+
+	void setCapacityPeriod(double capPeriod);
+
+	void setEffectiveCellSize(double effectiveCellSize);
+
+	void setEffectiveLaneWidth(double effectiveLaneWidth);
+
+	void setName(String name);
+
+	String getName();
+
+	double getEffectiveCellSize();
 
 }

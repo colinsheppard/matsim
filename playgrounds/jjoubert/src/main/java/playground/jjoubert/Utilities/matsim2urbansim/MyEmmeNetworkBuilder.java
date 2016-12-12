@@ -35,8 +35,8 @@ import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.NetworkFactory;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.network.NetworkWriter;
 import org.matsim.core.network.algorithms.NetworkCleaner;
+import org.matsim.core.network.io.NetworkWriter;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
@@ -46,7 +46,7 @@ import org.matsim.core.utils.io.IOUtils;
 /**
  * Reads node and link DBF files (that have been converted to TAB-delimited 
  * text files) generated from Emme transport models.
- * <p/>
+ * <p></p>
  * Keyword(s): emme/2
  * 
  * @author jjoubert *

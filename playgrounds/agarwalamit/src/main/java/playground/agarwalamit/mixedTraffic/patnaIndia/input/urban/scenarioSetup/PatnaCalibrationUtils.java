@@ -49,13 +49,13 @@ public class PatnaCalibrationUtils {
 		case "2":	// Mini Bus
 		case "5":	// Motor driven 3W
 		case "7" :	// train
+		case "9" :	//CycleRickshaw
 			travelMode = "pt";	break;								
 		case "3":	
 			travelMode = "car";	break;
 		case "4":	// all 2 W motorized 
 			travelMode = "motorbike";	break;							
 		case "6" :	//bicycle
-		case "9" :	//CycleRickshaw
 			travelMode = "bike";	break;						
 		case "8" : 
 			travelMode = "walk";	break;
@@ -66,25 +66,25 @@ public class PatnaCalibrationUtils {
 
 	public static int getIncomeInterval( final String monthlyIncome){
 
-		int inc = Integer.valueOf(monthlyIncome);
+		double inc = Double.valueOf(monthlyIncome);
 
-		if( inc <= 500) return 1;
-		else if (inc <= 1000) return 2;
-		else if (inc <= 3000) return 3;
-		else if (inc <= 5000) return 4;
-		else if (inc <= 7500) return 5;
-		else if (inc <= 1000) return 6;
+		if( inc <= 500.) return 1;
+		else if (inc <= 1000.) return 2;
+		else if (inc <= 3000.) return 3;
+		else if (inc <= 5000.) return 4;
+		else if (inc <= 7500.) return 5;
+		else if (inc <= 1000.) return 6;
 		else  return 7;
 	}
 
 	public static int getDailyExpenditureInterval( final String dailyExpenditure){
 
-		int cost = Integer.valueOf(dailyExpenditure);
+		double cost = Double.valueOf(dailyExpenditure);
 
-		if( cost <= 10) return 1;
-		else if (cost <= 25) return 2;
-		else if (cost <= 50) return 3;
-		else if (cost <= 100) return 4;
+		if( cost <= 10.) return 1;
+		else if (cost <= 25.) return 2;
+		else if (cost <= 50.) return 3;
+		else if (cost <= 100.) return 4;
 		else  return 5;
 	}
 

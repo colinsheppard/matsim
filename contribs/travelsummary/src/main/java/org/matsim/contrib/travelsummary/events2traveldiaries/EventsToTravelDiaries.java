@@ -18,7 +18,7 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.gbl.MatsimRandom;
-import org.matsim.core.network.MatsimNetworkReader;
+import org.matsim.core.network.io.MatsimNetworkReader;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.io.IOUtils;
@@ -32,11 +32,9 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author pieterfourie, sergioo
@@ -67,20 +65,35 @@ public class EventsToTravelDiaries implements
     private TransitSchedule transitSchedule;
     private boolean isTransitScenario = false;
     private String diagnosticString = "39669_2";
-
+    private AtomicInteger eventCounter = new AtomicInteger(0);
+    private int maxEvents = Integer.MAX_VALUE;
+    // those unscheduled modes that have been simulated on the network need to be processed the same way as car
+    private Set<String> networkModes = new HashSet<>();
 
     public EventsToTravelDiaries(TransitSchedule transitSchedule,
                                  Network network, Config config) {
-
+        networkModes.addAll(config.qsim().getMainModes());
         this.network = network;
         this.walkSpeed = new TransitRouterConfig(config).getBeelineWalkSpeed();
         this.transitSchedule = transitSchedule;
         this.isTransitScenario = true;
     }
 
+    public EventsToTravelDiaries(TransitSchedule transitSchedule,
+                                 Network network, Config config, int maxEvents) {
+        this(transitSchedule, network, config);
+        this.maxEvents = maxEvents;
+    }
+
+    public EventsToTravelDiaries(Scenario scenario, int maxEvents) {
+        this(scenario);
+        this.maxEvents = maxEvents;
+    }
+
     public EventsToTravelDiaries(Scenario scenario) {
+        networkModes.addAll(scenario.getConfig().qsim().getMainModes());
         this.network = scenario.getNetwork();
-        isTransitScenario = scenario.getConfig().transit().isUseTransit() ;
+        isTransitScenario = scenario.getConfig().transit().isUseTransit();
         if (isTransitScenario) {
             this.transitSchedule = scenario.getTransitSchedule();
             this.walkSpeed = new TransitRouterConfig(scenario.getConfig()).getBeelineWalkSpeed();
@@ -142,38 +155,41 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(ActivityEndEvent event) {
-        try {
-            if (isTransitScenario) {
-                if (transitDriverIds.contains(event.getPersonId()))
-                    return;
-            }
-            TravellerChain chain = chains.get(event.getPersonId());
-            locations.put(event.getPersonId(),
-                    network.getLinks().get(event.getLinkId()).getCoord());
-            if (chain == null) {
-                chain = new TravellerChain();
-                chains.put(event.getPersonId(), chain);
-                Activity act = chain.addActivity();
-                act.setCoord(network.getLinks().get(event.getLinkId())
-                        .getCoord());
-                act.setEndTime(event.getTime());
-                act.setFacility(event.getFacilityId());
-                act.setStartTime(0.0);
-                act.setType(event.getActType());
+        if (eventCounter.incrementAndGet() < maxEvents) {
+            try {
+                if (isTransitScenario) {
+                    if (transitDriverIds.contains(event.getPersonId()))
+                        return;
+                }
+                TravellerChain chain = chains.get(event.getPersonId());
+                locations.put(event.getPersonId(),
+                        network.getLinks().get(event.getLinkId()).getCoord());
+                if (chain == null) {
+                    chain = new TravellerChain();
+                    chains.put(event.getPersonId(), chain);
+                    Activity act = chain.addActivity();
+                    act.setCoord(network.getLinks().get(event.getLinkId())
+                            .getCoord());
+                    act.setEndTime(event.getTime());
+                    act.setFacility(event.getFacilityId());
+                    act.setStartTime(0.0);
+                    act.setType(event.getActType());
 
-            } else if (!event.getActType().equals(
-                    PtConstants.TRANSIT_ACTIVITY_TYPE)) {
-                Activity act = chain.getActs().getLast();
-                act.setEndTime(event.getTime());
+                } else if (!event.getActType().equals(
+                        PtConstants.TRANSIT_ACTIVITY_TYPE)) {
+                    Activity act = chain.getActs().getLast();
+                    act.setEndTime(event.getTime());
+                }
+            } catch (Exception e) {
+                System.err.println(e.getStackTrace());
+                System.err.println(event.toString());
             }
-        } catch (Exception e) {
-            System.err.println(e.getStackTrace());
-            System.err.println(event.toString());
         }
     }
 
     @Override
     public void handleEvent(ActivityStartEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             if (isTransitScenario) {
                 if (transitDriverIds.contains(event.getPersonId()))
@@ -210,13 +226,16 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(PersonArrivalEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             if (isTransitScenario) {
                 if (transitDriverIds.contains(event.getPersonId()))
                     return;
             }
             TravellerChain chain = chains.get(event.getPersonId());
-            switch (event.getLegMode()) {
+            String legMode = event.getLegMode();
+            String modeType = networkModes.contains(legMode) ? "congested" : legMode;
+            switch (modeType) {
                 case "walk":
                 case "transit_walk": {
                     Journey journey = chain.getJourneys().getLast();
@@ -227,7 +246,7 @@ public class EventsToTravelDiaries implements
                     walk.setDistance(walk.getDuration() * walkSpeed);
                     break;
                 }
-                case TransportMode.car: {
+                case "congested": {
                     Journey journey = chain.getJourneys().getLast();
                     journey.setDest(network.getLinks().get(event.getLinkId())
                             .getCoord());
@@ -235,7 +254,7 @@ public class EventsToTravelDiaries implements
                     Trip trip = journey.getTrips().getLast();
                     trip.setDistance(journey.getDistance());
                     trip.setEndTime(event.getTime());
-                    chain.inCar = false;
+                    chain.inCongestedMode = false;
                     break;
                 }
                 case "pt":
@@ -262,6 +281,9 @@ public class EventsToTravelDiaries implements
                     journey.setDest(network.getLinks().get(event.getLinkId())
                             .getCoord());
                     journey.setEndTime(event.getTime());
+                    Trip trip = journey.getTrips().getLast();
+                    trip.setDistance(journey.getDistance());
+                    trip.setEndTime(event.getTime());
                     break;
             }
         } catch (Exception e) {
@@ -272,13 +294,16 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(PersonDepartureEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             if (transitDriverIds.contains(event.getPersonId()))
                 return;
             TravellerChain chain = chains.get(event.getPersonId());
             Journey journey;
             Trip trip;
-            switch (event.getLegMode()) {
+            String legMode = event.getLegMode();
+            String modeType = networkModes.contains(legMode) ? "congested" : legMode;
+            switch (modeType) {
                 case TransportMode.walk:
                     //fall through to the next
                 case TransportMode.transit_walk:
@@ -302,8 +327,8 @@ public class EventsToTravelDiaries implements
                         journey.getPossibleTransfer().getWalks().add(walk);
                     }
                     break;
-                case TransportMode.car:
-                    chain.inCar = true;
+                case "congested":
+                    chain.inCongestedMode = true;
                     journey = chain.addJourney();
                     journey.setCarJourney(true);
                     journey.setOrig(network.getLinks().get(event.getLinkId())
@@ -311,7 +336,7 @@ public class EventsToTravelDiaries implements
                     journey.setFromAct(chain.getActs().getLast());
                     journey.setStartTime(event.getTime());
                     trip = journey.addTrip();
-                    trip.setMode("car");
+                    trip.setMode(legMode);
                     trip.setStartTime(event.getTime());
                     break;
                 case TransportMode.pt:
@@ -334,9 +359,9 @@ public class EventsToTravelDiaries implements
                                 .getCoord());
                         journey.setFromAct(chain.getActs().getLast());
                         journey.setStartTime(event.getTime());
-                        journey.setMainmode(event.getLegMode());
+                        journey.setMainmode(legMode);
                         trip = journey.addTrip();
-                        trip.setMode(event.getLegMode());
+                        trip.setMode(legMode);
                         trip.setStartTime(event.getTime());
                     }
                     break;
@@ -347,9 +372,9 @@ public class EventsToTravelDiaries implements
                             .getCoord());
                     journey.setFromAct(chain.getActs().getLast());
                     journey.setStartTime(event.getTime());
-                    journey.setMainmode(event.getLegMode());
+                    journey.setMainmode(legMode);
                     trip = journey.addTrip();
-                    trip.setMode(event.getLegMode());
+                    trip.setMode(legMode);
                     trip.setStartTime(event.getTime());
                     break;
 
@@ -362,6 +387,7 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(PersonStuckEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             if (!transitDriverIds.contains(event.getPersonId())) {
                 TravellerChain chain = chains.get(event.getPersonId());
@@ -377,6 +403,7 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(PersonEntersVehicleEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             if (transitDriverIds.contains(event.getPersonId()))
                 return;
@@ -419,6 +446,7 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(PersonLeavesVehicleEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         if (transitDriverIds.contains(event.getPersonId()))
             return;
         try {
@@ -443,6 +471,7 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(LinkEnterEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             if (ptVehicles.keySet().contains(event.getVehicleId())) {
                 PTVehicle ptVehicle = ptVehicles.get(event.getVehicleId());
@@ -462,6 +491,7 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(LinkLeaveEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             if (ptVehicles.keySet().contains(event.getVehicleId())) {
                 PTVehicle vehicle = ptVehicles.get(event.getVehicleId());
@@ -473,7 +503,7 @@ public class EventsToTravelDiaries implements
             } else {
                 TravellerChain chain = chains.get(driverIdFromVehicleId
                         .get(event.getVehicleId()));
-                if (chain.inCar) {
+                if (chain.inCongestedMode) {
                     Journey journey = chain.getJourneys().getLast();
                     journey.incrementCarDistance(network.getLinks()
                             .get(event.getLinkId()).getLength());
@@ -488,6 +518,7 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(TransitDriverStartsEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             ptVehicles.put(
                     event.getVehicleId(),
@@ -503,6 +534,7 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(TeleportationArrivalEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             if (transitDriverIds.contains(event.getPersonId()))
                 return;
@@ -517,6 +549,7 @@ public class EventsToTravelDiaries implements
 
     @Override
     public void handleEvent(VehicleArrivesAtFacilityEvent event) {
+        if (eventCounter.incrementAndGet() > maxEvents) return;
         try {
             ptVehicles.get(event.getVehicleId()).lastStop = event
                     .getFacilityId();

@@ -1,6 +1,7 @@
 package org.matsim.contrib.transEnergySim.chargingInfrastructure.stationary;
 
 import org.matsim.api.core.v01.Identifiable;
+import org.matsim.contrib.transEnergySim.agents.VehicleAgent;
 import org.matsim.contrib.transEnergySim.events.ChargingEvent;
 import org.matsim.contrib.transEnergySim.vehicles.api.VehicleWithBattery;
 
@@ -11,15 +12,35 @@ public interface ChargingPlug extends Identifiable<ChargingPlug> {
 	ChargingPlugStatus getChargingPlugStatus();
 	ChargingPlugType getChargingPlugType();
 	
-	void plugVehicle(VehicleWithBattery vehicle, double time);
-	void unPlugVehicle(VehicleWithBattery vehicle, double time);
+	void plugVehicle(VehicleWithBattery vehicle);
+	void unplugVehicle(VehicleWithBattery vehicle);
+	void registerPlugAvailable();
 
 	VehicleWithBattery getVehicle();
-
-	ChargingEvent estimateEndChargingEvent(double time);
 
 	double getMaxChargingPowerInWatt();
 	double getActualChargingPowerInWatt();
 
 	double getEnergyDeliveredByTime(double time);
+
+	ChargingSite getChargingSite();
+
+	double estimateChargingSessionDuration();
+	
+	void handleBeginChargeEvent();
+
+	void handleEndChargingSession();
+
+	void registerPlugInaccessible();
+
+	void registerPlugAccessible();
+
+	void handleBeginChargingSession(VehicleAgent agent);
+
+	void handleChargingSessionInterruption();
+
+	boolean isAvailable();
+	boolean isAccessible();
+
+	void resetAll();
 }

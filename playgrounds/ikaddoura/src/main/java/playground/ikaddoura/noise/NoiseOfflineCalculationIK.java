@@ -34,6 +34,7 @@ import org.matsim.contrib.noise.utils.ProcessNoiseImmissions;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 
 /**
  * (1) Computes noise emissions, immissions, person activities and damages based on a standard events file.
@@ -51,6 +52,8 @@ public class NoiseOfflineCalculationIK {
 	private static double receiverPointGap;
 	private static double timeBinSize;
 				
+	private static String receiverPointsGridCSVFile;	
+
 	public static void main(String[] args) {
 		
 		if (args.length > 0) {
@@ -69,36 +72,51 @@ public class NoiseOfflineCalculationIK {
 			
 			timeBinSize = Double.valueOf(args[4]);		
 			log.info("Time bin size: " + timeBinSize);
-
-			throw new RuntimeException("Not yet implemented. Aborting...");
-
+			
+			receiverPointsGridCSVFile = args[5];		
+			log.info("receiverPointGridCSVFile: " + receiverPointsGridCSVFile);
 			
 		} else {
 			
-			runDirectory = "/Users/ihab/Documents/workspace/runs-svn/cn2/output/cn1/";
-			outputDirectory = "/Users/ihab/Documents/workspace/runs-svn/cn2/output/cn1/noiseAnalysisVia/";
-			receiverPointGap = 25.;
+			runDirectory = "../../../runs-svn/berlin_internalizationCar/output/baseCase_2/";
+			outputDirectory = "../../../runs-svn/berlin_internalizationCar/output/baseCase_2/noiseAnalysis_gridCSVFile_heerstrasse/";
+			receiverPointGap = 5.;
 			lastIteration = 100;
-			timeBinSize = 900.;
+			timeBinSize = 3600.;
+			receiverPointsGridCSVFile = "../../../shared-svn/studies/countries/de/berlin_noise/Fassadenpegel/FP_gesamt_Atom_repaired_heerstrasse.csv";
 		}
 		
 		Config config = ConfigUtils.createConfig(new NoiseConfigGroup());
 		config.network().setInputFile(runDirectory + "output_network.xml.gz");
 		config.plans().setInputFile(runDirectory + "output_plans.xml.gz");
 		config.controler().setOutputDirectory(runDirectory);
-		config.controler().setLastIteration(lastIteration);		
+		config.controler().setLastIteration(lastIteration);	
+		config.global().setCoordinateSystem(TransformationFactory.DHDN_GK4);
 						
 		// adjust the default noise parameters
 		
 		NoiseConfigGroup noiseParameters = (NoiseConfigGroup) config.getModule("noise");
-		
 		noiseParameters.setReceiverPointGap(receiverPointGap);
+		noiseParameters.setReceiverPointsCSVFile(receiverPointsGridCSVFile);
+		noiseParameters.setReceiverPointsCSVFileCoordinateSystem(TransformationFactory.DHDN_SoldnerBerlin);
+		
+		// Wilmersdorf with motorway: 4589486 , 5816193 : 4590778 , 5817029
+//		double xMin = 4589486.;
+//		double yMin = 5816193.;
+//		double xMax = 4590778.;
+//		double yMax = 5817029.;
+		
+		// somewhere in Schoeneberg: 4591842 5817767 : 4593134 5818603
+//		double xMin = 4591842.;
+//		double yMin = 5817767.;
+//		double xMax = 4593134.;
+//		double yMax = 5818603.;
 		
 		// Berlin Coordinates: Area around the city center of Berlin (Tiergarten)
-		double xMin = 4590855.;
-		double yMin = 5819679.;
-		double xMax = 4594202.;
-		double yMax = 5821736.;
+//		double xMin = 4590855.;
+//		double yMin = 5819679.;
+//		double xMax = 4594202.;
+//		double yMax = 5821736.;
 		
 //		// Berlin Coordinates: Area around the Tempelhofer Feld 4591900,5813265 : 4600279,5818768
 //		double xMin = 4591900.;
@@ -130,19 +148,19 @@ public class NoiseOfflineCalculationIK {
 //		double xMax = 4598267.52;
 //		double yMax = 5820953.98;	
 		
-		noiseParameters.setReceiverPointsGridMinX(xMin);
-		noiseParameters.setReceiverPointsGridMinY(yMin);
-		noiseParameters.setReceiverPointsGridMaxX(xMax);
-		noiseParameters.setReceiverPointsGridMaxY(yMax);
+//		noiseParameters.setReceiverPointsGridMinX(xMin);
+//		noiseParameters.setReceiverPointsGridMinY(yMin);
+//		noiseParameters.setReceiverPointsGridMaxX(xMax);
+//		noiseParameters.setReceiverPointsGridMaxY(yMax);
 		
 //		 Berlin Activity Types
-		String[] consideredActivitiesForDamages = {"home", "work", "educ_primary", "educ_secondary", "educ_higher", "kiga"};
+//		String[] consideredActivitiesForDamages = {"home", "work", "educ_primary", "educ_secondary", "educ_higher", "kiga"};
 //		String[] consideredActivitiesForDamages = {"home"};
 //		String[] consideredActivitiesForDamages = {"work"};
 //		String[] consideredActivitiesForDamages = {"educ_primary", "educ_secondary", "educ_higher", "kiga"};
 //		String[] consideredActivitiesForDamages = {"leisure"};
 //		String[] consideredActivitiesForDamages = {"home", "educ_primary", "educ_secondary", "educ_higher", "kiga"};
-		noiseParameters.setConsideredActivitiesForDamageCalculationArray(consideredActivitiesForDamages);
+//		noiseParameters.setConsideredActivitiesForDamageCalculationArray(consideredActivitiesForDamages);
 		
 //		String[] consideredActivitiesForReceiverPointGrid = {"home", "work", "educ_primary", "educ_secondary", "educ_higher", "kiga"};
 //		String[] consideredActivitiesForReceiverPointGrid = {"home", "work", "educ_primary", "educ_secondary", "educ_higher", "kiga", "leisure"};
@@ -150,11 +168,11 @@ public class NoiseOfflineCalculationIK {
 		
 		// ################################
 		
-		noiseParameters.setUseActualSpeedLevel(true);
+		noiseParameters.setUseActualSpeedLevel(false);
 		noiseParameters.setAllowForSpeedsOutsideTheValidRange(false);
 		noiseParameters.setScaleFactor(10.);
-		noiseParameters.setComputePopulationUnits(true);
-		noiseParameters.setComputeNoiseDamages(true);
+		noiseParameters.setComputePopulationUnits(false);
+		noiseParameters.setComputeNoiseDamages(false);
 		noiseParameters.setInternalizeNoiseDamages(false);
 		noiseParameters.setComputeCausingAgents(false);
 		noiseParameters.setThrowNoiseEventsAffected(false);
@@ -226,16 +244,16 @@ public class NoiseOfflineCalculationIK {
 		ProcessNoiseImmissions process = new ProcessNoiseImmissions(outputFilePath + "immissions/", outputFilePath + "receiverPoints/receiverPoints.csv", noiseParameters.getReceiverPointGap());
 		process.run();
 				
-		final String[] labels = { "immission", "consideredAgentUnits" , "damages_receiverPoint" };
-		final String[] workingDirectories = { outputFilePath + "/immissions/" , outputFilePath + "/consideredAgentUnits/" , outputFilePath + "/damages_receiverPoint/" };
-
-		MergeNoiseCSVFile merger = new MergeNoiseCSVFile() ;
-		merger.setReceiverPointsFile(outputFilePath + "receiverPoints/receiverPoints.csv");
-		merger.setOutputDirectory(outputFilePath);
-		merger.setTimeBinSize(noiseParameters.getTimeBinSizeNoiseComputation());
-		merger.setWorkingDirectory(workingDirectories);
-		merger.setLabel(labels);
-		merger.run();
+//		final String[] labels = { "immission", "consideredAgentUnits" , "damages_receiverPoint" };
+//		final String[] workingDirectories = { outputFilePath + "/immissions/" , outputFilePath + "/consideredAgentUnits/" , outputFilePath + "/damages_receiverPoint/" };
+//
+//		MergeNoiseCSVFile merger = new MergeNoiseCSVFile() ;
+//		merger.setReceiverPointsFile(outputFilePath + "receiverPoints/receiverPoints.csv");
+//		merger.setOutputDirectory(outputFilePath);
+//		merger.setTimeBinSize(noiseParameters.getTimeBinSizeNoiseComputation());
+//		merger.setWorkingDirectory(workingDirectories);
+//		merger.setLabel(labels);
+//		merger.run();
 	}
 }
 		

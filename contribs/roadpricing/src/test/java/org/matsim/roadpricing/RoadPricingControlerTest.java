@@ -28,6 +28,8 @@ import org.matsim.api.core.v01.population.Person;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.controler.Controler;
+import org.matsim.core.utils.io.IOUtils;
+import org.matsim.examples.ExamplesUtils;
 import org.matsim.testcases.MatsimTestUtils;
 
 /**
@@ -43,9 +45,9 @@ public class RoadPricingControlerTest {
     @Test
 	public void testPaidTollsEndUpInScores() {
 		// first run basecase
-		Config config = utils.loadConfig("test/scenarios/equil/config.xml");
+		Config config = utils.loadConfig(IOUtils.newUrl(ExamplesUtils.getTestScenarioURL("equil"), "config.xml"));
 		config.controler().setLastIteration(0);
-		config.plans().setInputFile("test/scenarios/equil/plans1.xml");
+		config.plans().setInputFile("plans1.xml");
 		config.controler().setOutputDirectory(utils.getOutputDirectory() + "/basecase/");
 		config.controler().setWritePlansInterval(0);
 		Controler controler1 = new Controler(config);

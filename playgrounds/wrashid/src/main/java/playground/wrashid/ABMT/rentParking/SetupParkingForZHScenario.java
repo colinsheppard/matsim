@@ -29,16 +29,16 @@ import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Population;
 import org.matsim.contrib.multimodal.router.util.WalkTravelTime;
-import org.matsim.contrib.parking.PC2.infrastructure.PC2Parking;
-import org.matsim.contrib.parking.PC2.infrastructure.PPRestrictedToFacilities;
-import org.matsim.contrib.parking.PC2.infrastructure.PublicParking;
-import org.matsim.contrib.parking.PC2.infrastructure.RentableParking;
-import org.matsim.contrib.parking.PC2.scoring.ParkingBetas;
-import org.matsim.contrib.parking.PC2.scoring.ParkingCostModel;
-import org.matsim.contrib.parking.PC2.scoring.ParkingScoreManager;
-import org.matsim.contrib.parking.PC2.scoring.RandomErrorTermManager;
-import org.matsim.contrib.parking.PC2.simulation.ParkingInfrastructureManager;
-import org.matsim.contrib.parking.lib.obj.DoubleValueHashMap;
+import org.matsim.contrib.parking.parkingchoice.PC2.infrastructure.PC2Parking;
+import org.matsim.contrib.parking.parkingchoice.PC2.infrastructure.PPRestrictedToFacilities;
+import org.matsim.contrib.parking.parkingchoice.PC2.infrastructure.PublicParking;
+import org.matsim.contrib.parking.parkingchoice.PC2.infrastructure.RentableParking;
+import org.matsim.contrib.parking.parkingchoice.PC2.scoring.ParkingBetas;
+import org.matsim.contrib.parking.parkingchoice.PC2.scoring.ParkingCostModel;
+import org.matsim.contrib.parking.parkingchoice.PC2.scoring.ParkingScoreManager;
+import org.matsim.contrib.parking.parkingchoice.PC2.scoring.RandomErrorTermManager;
+import org.matsim.contrib.parking.parkingchoice.PC2.simulation.ParkingInfrastructureManager;
+import org.matsim.contrib.parking.parkingchoice.lib.obj.DoubleValueHashMap;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.groups.PlansCalcRouteConfigGroup;
 import org.matsim.core.controler.MatsimServices;
@@ -210,7 +210,7 @@ public class SetupParkingForZHScenario {
 		Map<Id<Link>, Double> linkSlopes=new HashMap<>();
 		String linkSlopeAttributeFile = controler.getConfig().getParam("parkingChoice.ZH", "networkLinkSlopes");
 		ObjectAttributes lp = new ObjectAttributes();
-		new ObjectAttributesXmlReader(lp).parse(linkSlopeAttributeFile);
+		new ObjectAttributesXmlReader(lp).readFile(linkSlopeAttributeFile);
 
         for (Id<Link> linkId : controler.getScenario().getNetwork().getLinks().keySet()) {
 			linkSlopes.put(linkId, (Double) lp.getAttribute(linkId.toString(), "slope"));

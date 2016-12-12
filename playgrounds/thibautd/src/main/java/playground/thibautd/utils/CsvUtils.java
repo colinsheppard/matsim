@@ -23,10 +23,8 @@ import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author thibautd
@@ -133,6 +131,9 @@ public class CsvUtils {
 		}
 
 		public int getIndexOfField( final String name ) {
+			if ( !map.containsKey( name ) ) {
+				throw new IllegalArgumentException( "There is no column named "+name+". Valid names are "+map.keySet() );
+			}
 			return map.get( name );
 		}
 

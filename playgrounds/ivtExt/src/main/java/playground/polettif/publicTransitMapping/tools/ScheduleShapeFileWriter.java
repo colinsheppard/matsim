@@ -35,10 +35,11 @@ import org.opengis.feature.simple.SimpleFeature;
 import java.util.*;
 
 /**
- * Converts a MATSim Transit Schedule to a GIS shape file
+ * Converts a MATSim Transit Schedule to a ESRI shape file
  *
  * @author polettif
  */
+@Deprecated
 public class ScheduleShapeFileWriter {
 
 	private static final Logger log = Logger.getLogger(ScheduleShapeFileWriter.class);
@@ -138,7 +139,7 @@ public class ScheduleShapeFileWriter {
 			pf.setAttribute("linkId", stopFacility.getLinkId().toString());
 			pf.setAttribute("postAreaId", stopFacility.getStopPostAreaId());
 			pf.setAttribute("isBlocking", stopFacility.getIsBlockingLane());
-			pf.setAttribute("routes", CollectionUtils.idSetToString(routesOnStopFacility.get(stopFacility)));
+			if(routesOnStopFacility.get(stopFacility) != null) pf.setAttribute("routes", CollectionUtils.idSetToString(routesOnStopFacility.get(stopFacility)));
 			pointFeatures.add(pf);
 
 			SimpleFeature lf = polylineFeatureFactory.createPolyline(coordinates);
@@ -147,7 +148,7 @@ public class ScheduleShapeFileWriter {
 			lf.setAttribute("linkId", stopFacility.getLinkId().toString());
 			lf.setAttribute("postAreaId", stopFacility.getStopPostAreaId());
 			lf.setAttribute("isBlocking", stopFacility.getIsBlockingLane());
-			pf.setAttribute("routes", CollectionUtils.idSetToString(routesOnStopFacility.get(stopFacility)));
+			if(routesOnStopFacility.get(stopFacility) != null) pf.setAttribute("routes", CollectionUtils.idSetToString(routesOnStopFacility.get(stopFacility)));
 			lineFeatures.add(lf);
 		}
 

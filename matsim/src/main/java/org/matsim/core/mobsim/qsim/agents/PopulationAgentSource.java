@@ -19,11 +19,16 @@
 
 package org.matsim.core.mobsim.qsim.agents;
 
+import java.util.*;
+import javax.inject.Inject;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.config.Config;
+import org.matsim.core.config.groups.QSimConfigGroup;
+import org.matsim.core.gbl.Gbl;
 import org.matsim.core.mobsim.framework.AgentSource;
 import org.matsim.core.mobsim.framework.MobsimAgent;
 import org.matsim.core.mobsim.qsim.QSim;
@@ -33,9 +38,7 @@ import org.matsim.facilities.ActivityFacilities;
 import org.matsim.vehicles.Vehicle;
 import org.matsim.vehicles.VehicleType;
 import org.matsim.vehicles.VehicleUtils;
-
-import javax.inject.Inject;
-import java.util.*;
+import org.matsim.vehicles.Vehicles;
 
 public final class PopulationAgentSource implements AgentSource {
 	private static final Logger log = Logger.getLogger( PopulationAgentSource.class );
@@ -49,15 +52,38 @@ public final class PopulationAgentSource implements AgentSource {
 
 	@Inject
 	public PopulationAgentSource(Population population, AgentFactory agentFactory, QSim qsim ) {
+		Vehicles vehicles = qsim.getScenario().getVehicles() ;
+		QSimConfigGroup qsimConfig = qsim.getScenario().getConfig().qsim() ;
+		
 		this.population = population;
 		this.agentFactory = agentFactory;
 		this.qsim = qsim;  
 		this.modeVehicleTypes = new HashMap<>();
 		this.mainModes = qsim.getScenario().getConfig().qsim().getMainModes();
-		for (String mode : mainModes) {
-			// initialize each mode with default vehicle type:
-			modeVehicleTypes.put(mode, VehicleUtils.getDefaultVehicleType());
+		switch ( qsimConfig.getVehiclesSource() ) {
+		case defaultVehicle:
+			for (String mode : mainModes) {
+				// initialize each mode with default vehicle type:
+				modeVehicleTypes.put(mode, VehicleUtils.getDefaultVehicleType());
+			}
+			break;
+		case fromVehiclesData:
+			// don't do anything
+			break;
+		case modeVehicleTypesFromVehiclesData:
+			for (String mode : mainModes) {
+				VehicleType vehicleType = vehicles.getVehicleTypes().get( Id.create(mode, VehicleType.class) ) ;
+				Gbl.assertNotNull(vehicleType);
+				modeVehicleTypes.put(mode, vehicleType );
+			}
+			break;
+		default:
+			break;
+		
 		}
+		
+		
+		
 	}
 
 	@Override
@@ -73,27 +99,50 @@ public final class PopulationAgentSource implements AgentSource {
 
 	private void insertVehicles(Person p) {
 		Plan plan = p.getSelectedPlan();
-		Set<String> seenModes = new HashSet<>();
+		Map<String,Id<Vehicle>> seenModes = new HashMap<>();
 		for (PlanElement planElement : plan.getPlanElements()) {
 			if (planElement instanceof Leg) {
 				Leg leg = (Leg) planElement;
 				if (this.mainModes.contains(leg.getMode())) { // only simulated modes get vehicles
-					if (!seenModes.contains(leg.getMode())) { // create one vehicle per simulated mode, put it on the home location
-						NetworkRoute route = (NetworkRoute) leg.getRoute();
-						Id<Vehicle> vehicleId = null ;
-						if (route != null) {
-							vehicleId = route.getVehicleId(); // may be null!
-						}
+					NetworkRoute route = (NetworkRoute) leg.getRoute();
+					Id<Vehicle> vehicleId = null ;
+					if (route != null) {
+						vehicleId = route.getVehicleId(); // may be null!
+					}
+					if (!seenModes.keySet().contains(leg.getMode())) { // create one vehicle per simulated mode, put it on the home location
+						// yyyy this is already getting rather messy; need to consider simplifications ...  kai/amit, sep'16
+						
 						if (vehicleId == null) {
 							if (qsim.getScenario().getConfig().qsim().getUsePersonIdForMissingVehicleId()) {
-								vehicleId = Id.create(p.getId(), Vehicle.class);
+
+								switch (qsim.getScenario().getConfig().qsim().getVehiclesSource()) {
+									case defaultVehicle:
+									case fromVehiclesData:
+										vehicleId = Id.createVehicleId(p.getId());
+										break;
+									case modeVehicleTypesFromVehiclesData:
+										if(!leg.getMode().equals(TransportMode.car)) {
+											String vehIdString = p.getId().toString() + "_" + leg.getMode() ;
+											vehicleId = Id.create(vehIdString, Vehicle.class);
+										} else {
+											vehicleId = Id.createVehicleId(p.getId());
+										}
+										break;
+									default:
+										throw new RuntimeException("not implemented") ;
+								}
+								if(route!=null) route.setVehicleId(vehicleId);
 							} else {
 								throw new IllegalStateException("Found a network route without a vehicle id.");
 							}
 						}
+
+						// so here we have a vehicle id, now try to find or create a physical vehicle:
+						
 						Vehicle vehicle = null ;
 						switch ( qsim.getScenario().getConfig().qsim().getVehiclesSource() ) {
 						case defaultVehicle:
+						case modeVehicleTypesFromVehiclesData:
 							vehicle = VehicleUtils.getFactory().createVehicle(vehicleId, modeVehicleTypes.get(leg.getMode()));
 							break;
 						case fromVehiclesData:
@@ -105,6 +154,8 @@ public final class PopulationAgentSource implements AgentSource {
 						default:
 							throw new RuntimeException("not implemented") ;
 						}
+						
+						// place the vehicle:
 						Id<Link> vehicleLinkId = findVehicleLink(p);
 						
 						// Checking if the vehicle has been seen before:
@@ -120,7 +171,12 @@ public final class PopulationAgentSource implements AgentSource {
 							this.seenVehicleIds.put( vehicleId, vehicleLinkId ) ;
 							qsim.createAndParkVehicleOnLink(vehicle, vehicleLinkId);
 						}
-						seenModes.add(leg.getMode());
+						seenModes.put(leg.getMode(),vehicleId);
+					} else {
+						if (vehicleId==null && route!=null) {
+							vehicleId = seenModes.get(leg.getMode());
+							route.setVehicleId( vehicleId );
+						}
 					}
 				}
 			}

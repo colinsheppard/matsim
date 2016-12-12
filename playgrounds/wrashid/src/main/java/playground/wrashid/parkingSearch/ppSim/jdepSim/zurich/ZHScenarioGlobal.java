@@ -29,9 +29,9 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
-import org.matsim.contrib.parking.lib.DebugLib;
-import org.matsim.contrib.parking.lib.GeneralLib;
-import org.matsim.contrib.parking.lib.obj.IntegerValueHashMap;
+import org.matsim.contrib.parking.parkingchoice.lib.DebugLib;
+import org.matsim.contrib.parking.parkingchoice.lib.GeneralLib;
+import org.matsim.contrib.parking.parkingchoice.lib.obj.IntegerValueHashMap;
 import org.matsim.core.config.Config;
 import org.matsim.core.population.routes.LinkNetworkRouteImpl;
 import org.matsim.utils.objectattributes.ObjectAttributes;
@@ -235,7 +235,7 @@ public class ZHScenarioGlobal {
 		} else {
 			String linkSlopeAttributeFile = ZHScenarioGlobal.loadStringParam("networkLinkSlopes");
 			ObjectAttributes lp = new ObjectAttributes();
-			new ObjectAttributesXmlReader(lp).parse(linkSlopeAttributeFile);
+			new ObjectAttributesXmlReader(lp).readFile(linkSlopeAttributeFile);
 
 			for (Id<Link> linkId : scenario.getNetwork().getLinks().keySet()) {
 				linkSlopes.put(linkId, (Double) lp.getAttribute(linkId.toString(), "slope"));

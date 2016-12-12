@@ -20,29 +20,34 @@
 
 package org.matsim.integration.replanning;
 
-import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.groups.ControlerConfigGroup.EventsFileFormat;
 import org.matsim.core.config.groups.ControlerConfigGroup.RoutingAlgorithmType;
 import org.matsim.core.controler.Controler;
-import org.matsim.core.network.MatsimNetworkReader;
-import org.matsim.core.population.MatsimPopulationReader;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.testcases.MatsimTestCase;
+import org.matsim.core.utils.io.IOUtils;
+import org.matsim.examples.ExamplesUtils;
+import org.matsim.testcases.MatsimTestUtils;
 
+import java.io.File;
+import java.net.MalformedURLException;
 import java.util.EnumSet;
 
-public class ReRoutingIT extends MatsimTestCase {
+public class ReRoutingIT {
 
-	/*package*/ static final Logger log = Logger.getLogger(ReRoutingIT.class);
+	@Rule
+	public MatsimTestUtils utils = new MatsimTestUtils();
 
-	
 	private Scenario loadScenario() {
-		Config config = loadConfig(getClassInputDirectory() + "config.xml");
+		Config config = utils.loadConfig(IOUtils.newUrl(utils.classInputResourcePath(), "config.xml"));
+		config.network().setInputFile(IOUtils.newUrl(ExamplesUtils.getTestScenarioURL("berlin"), "network.xml.gz").toString());
+		config.plans().setInputFile(IOUtils.newUrl(ExamplesUtils.getTestScenarioURL("berlin"), "plans_hwh_1pct.xml.gz").toString());
 		config.qsim().setTimeStepSize(10.0);
         config.qsim().setStuckTime(100.0);
         config.qsim().setRemoveStuckVehicles(true);
@@ -58,8 +63,9 @@ public class ReRoutingIT extends MatsimTestCase {
 		PopulationUtils.sortPersons(scenario.getPopulation());
 		return scenario;
 	}
-	
-	public void testReRoutingDijkstra() {
+
+	@Test
+	public void testReRoutingDijkstra() throws MalformedURLException {
 		Scenario scenario = this.loadScenario();
 		scenario.getConfig().controler().setRoutingAlgorithmType(RoutingAlgorithmType.Dijkstra);
 		Controler controler = new Controler(scenario);
@@ -69,7 +75,8 @@ public class ReRoutingIT extends MatsimTestCase {
 		this.evaluate();
 	}
 
-	public void testReRoutingFastDijkstra() {
+	@Test
+	public void testReRoutingFastDijkstra() throws MalformedURLException {
 		Scenario scenario = this.loadScenario();
 		scenario.getConfig().controler().setRoutingAlgorithmType(RoutingAlgorithmType.FastDijkstra);
 		Controler controler = new Controler(scenario);
@@ -82,7 +89,8 @@ public class ReRoutingIT extends MatsimTestCase {
 	/**
 	 * This test seems to have race conditions somewhere (i.e. it fails intermittently without code changes). kai, aug'13
 	 */
-	public void testReRoutingAStarLandmarks() {
+	@Test
+	public void testReRoutingAStarLandmarks() throws MalformedURLException {
 		Scenario scenario = this.loadScenario();
 		scenario.getConfig().controler().setRoutingAlgorithmType(RoutingAlgorithmType.AStarLandmarks);
 		Controler controler = new Controler(scenario);
@@ -92,7 +100,8 @@ public class ReRoutingIT extends MatsimTestCase {
 		this.evaluate();
 	}
 
-	public void testReRoutingFastAStarLandmarks() {
+	@Test
+	public void testReRoutingFastAStarLandmarks() throws MalformedURLException {
 		Scenario scenario = this.loadScenario();
 		scenario.getConfig().controler().setRoutingAlgorithmType(RoutingAlgorithmType.FastAStarLandmarks);
 		Controler controler = new Controler(scenario);
@@ -102,22 +111,19 @@ public class ReRoutingIT extends MatsimTestCase {
 		this.evaluate();
 	}
 	
-	private void evaluate() {
-		Config config = loadConfig(getClassInputDirectory() + "config.xml");
-		final String originalFileName = getInputDirectory() + "1.plans.xml.gz";
-		final String revisedFileName = getOutputDirectory() + "ITERS/it.1/1.plans.xml.gz";
-		
-		Scenario referenceScenario = ScenarioUtils.createScenario(config);
-		new MatsimNetworkReader(referenceScenario.getNetwork()).readFile(config.network().getInputFile());
-		new MatsimPopulationReader(referenceScenario).readFile(originalFileName);
+	private void evaluate() throws MalformedURLException {
+		Config config = utils.loadConfig(IOUtils.newUrl(utils.classInputResourcePath(), "config.xml"));
+		config.network().setInputFile(IOUtils.newUrl(ExamplesUtils.getTestScenarioURL("berlin"), "network.xml.gz").toString());
+		config.plans().setInputFile(IOUtils.newUrl(utils.inputResourcePath(), "1.plans.xml.gz").toString());
+		Scenario referenceScenario = ScenarioUtils.loadScenario(config);
 
-		Scenario scenario = ScenarioUtils.createScenario(config);
-		new MatsimPopulationReader(scenario).readFile(revisedFileName);
+		config.plans().setInputFile(new File(utils.getOutputDirectory() + "ITERS/it.1/1.plans.xml.gz").toURI().toURL().toString());
+		Scenario scenario = ScenarioUtils.loadScenario(config);
 
 		final boolean isEqual = PopulationUtils.equalPopulation(referenceScenario.getPopulation(), scenario.getPopulation());
 		if ( !isEqual ) {
-			new PopulationWriter(referenceScenario.getPopulation(), scenario.getNetwork()).write( getOutputDirectory() + "/reference_population.xml.gz");
-			new PopulationWriter(scenario.getPopulation(), scenario.getNetwork()).write( getOutputDirectory() + "/output_population.xml.gz");
+			new PopulationWriter(referenceScenario.getPopulation(), scenario.getNetwork()).write(utils.getOutputDirectory() + "/reference_population.xml.gz");
+			new PopulationWriter(scenario.getPopulation(), scenario.getNetwork()).write(utils.getOutputDirectory() + "/output_population.xml.gz");
 		}
 		Assert.assertTrue("different plans files.", isEqual);
 	}

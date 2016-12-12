@@ -26,18 +26,18 @@ import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.core.population.algorithms.PlanAlgorithm;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.router.PlanRouter;
 import org.matsim.core.router.TripRouter;
 import org.matsim.core.router.costcalculators.TravelDisutilityFactory;
 import org.matsim.core.router.util.TravelTime;
-import org.matsim.population.algorithms.PlanAlgorithm;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 import java.util.Map;
 
-public class PlansCalcRouteWithTollOrNot implements PlanAlgorithm {
+ class PlansCalcRouteWithTollOrNot implements PlanAlgorithm {
 
 	public static final String CAR_WITH_PAYED_AREA_TOLL = "car_with_payed_area_toll";
 	private RoadPricingScheme roadPricingScheme;

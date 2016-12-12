@@ -39,7 +39,7 @@ import org.matsim.core.mobsim.qsim.QSim;
 import org.matsim.core.mobsim.qsim.QSimUtils;
 import org.matsim.core.mobsim.qsim.pt.TransitQSimEngine;
 import org.matsim.core.mobsim.qsim.pt.TransitStopAgentTracker;
-import org.matsim.lanes.data.v20.Lanes;
+import org.matsim.lanes.data.Lanes;
 import org.matsim.vis.otfvis.handler.FacilityDrawer;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.vis.otfvis.*;
@@ -63,17 +63,8 @@ public class OTFVisWithSignals {
 	}
 
 	public static OnTheFlyServer startServerAndRegisterWithQSim(Config config, Scenario scenario, EventsManager events, QSim qSim) {
-		OnTheFlyServer server = OnTheFlyServer.createInstance(scenario, events);
-
-		// this is the start/stop facility, which may be used outside of otfvis:
-		PlayPauseMobsimListener playPauseMobsimListener = new PlayPauseMobsimListener();
-		server.setNotificationListener( playPauseMobsimListener ) ;
-		qSim.addQueueSimulationListeners(playPauseMobsimListener);
-
-		server.setSimulation(qSim);
-
+		OnTheFlyServer server = OnTheFlyServer.createInstance(scenario, events, qSim);
 		if (config.transit().isUseTransit()) {
-
 			Network network = scenario.getNetwork();
 			TransitSchedule transitSchedule = scenario.getTransitSchedule();
 			TransitQSimEngine transitEngine = qSim.getTransitEngine();

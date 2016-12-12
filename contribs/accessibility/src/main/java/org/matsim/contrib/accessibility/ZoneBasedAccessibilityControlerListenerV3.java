@@ -3,16 +3,11 @@ package org.matsim.contrib.accessibility;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.contrib.accessibility.interfaces.FacilityDataExchangeInterface;
-import org.matsim.contrib.matrixbasedptrouter.PtMatrix;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.controler.MatsimServices;
 import org.matsim.core.controler.events.ShutdownEvent;
 import org.matsim.core.controler.listener.ShutdownListener;
-import org.matsim.core.router.costcalculators.TravelDisutilityFactory;
-import org.matsim.core.router.util.TravelTime;
 import org.matsim.facilities.ActivityFacilitiesImpl;
-
-import java.util.Map;
 
 /**
  *  improvements feb'12
@@ -50,42 +45,27 @@ import java.util.Map;
  *
  */
 public final class ZoneBasedAccessibilityControlerListenerV3 implements ShutdownListener{
+	// yyyy The zone based and the grid based accessibility controler listeners should be combined, since the coordinate points on which this is
+	// computed are now external anyways.  There is probably one or the other grid dependency in the grid based accessibility controler
+	// listener, but we wanted to remove that anyways.  kai, dec'16
 	
 	private static final Logger log = Logger.getLogger(ZoneBasedAccessibilityControlerListenerV3.class);
-	private final AccessibilityCalculator delegate;
-	private UrbanSimZoneCSVWriterV2 urbanSimZoneCSVWriterV2;
+
+	private final AccessibilityCalculator accessibilityCalculator;
+	private final ActivityFacilitiesImpl opportunities;
 	
-
-	// ////////////////////////////////////////////////////////////////////
-	// constructors
-	// ////////////////////////////////////////////////////////////////////
-
-	public ZoneBasedAccessibilityControlerListenerV3(ActivityFacilitiesImpl measuringPoints,
+	public ZoneBasedAccessibilityControlerListenerV3(AccessibilityCalculator accessibilityCalculator,
 													 ActivityFacilitiesImpl opportunities,
-													 PtMatrix ptMatrix,
 													 String matsim4opusTempDirectory,
-													 Scenario scenario, Map<String, TravelTime> travelTimes, Map<String, TravelDisutilityFactory> travelDisutilityFactories) {
+													 Scenario scenario) {
 		
+		this.accessibilityCalculator = accessibilityCalculator;
 		log.info("Initializing ZoneBasedAccessibilityControlerListenerV3 ...");
 		
-		assert(measuringPoints != null);
-		delegate = new AccessibilityCalculator(travelTimes, travelDisutilityFactories, scenario, ConfigUtils.addOrGetModule(scenario.getConfig(), AccessibilityConfigGroup.GROUP_NAME, AccessibilityConfigGroup.class));
-		delegate.setMeasuringPoints(measuringPoints);
 		assert(matsim4opusTempDirectory != null);
-		delegate.setPtMatrix(ptMatrix); // this could be zero of no input files for pseudo pt are given ...
 		assert(scenario != null);
 
-		// writing accessibility measures continuously into "zone.csv"-file. Naming of this 
-		// files is given by the UrbanSim convention importing a csv file into a identically named 
-		// data set table. THIS PRODUCES URBANSIM INPUT
-		String matsimOutputDirectory = scenario.getConfig().controler().getOutputDirectory();
-		urbanSimZoneCSVWriterV2 = new UrbanSimZoneCSVWriterV2(matsim4opusTempDirectory, matsimOutputDirectory);
-		delegate.addFacilityDataExchangeListener(urbanSimZoneCSVWriterV2);
-
-		delegate.initAccessibilityParameters(scenario.getConfig());
-
-		// aggregating facilities to their nearest node on the road network
-		delegate.aggregateOpportunities(opportunities, scenario.getNetwork());
+		this.opportunities = opportunities;
 		// yyyy ignores the "capacities" of the facilities. kai, mar'14
 		
 		
@@ -95,16 +75,9 @@ public final class ZoneBasedAccessibilityControlerListenerV3 implements Shutdown
 	@Override
 	public void notifyShutdown(ShutdownEvent event) {
 		log.info("Entering notifyShutdown ..." );
-		delegate.initDefaultContributionCalculators();
-
-		if(delegate.getIsComputingMode().isEmpty()) {
+//		if(delegate.getIsComputingMode().isEmpty()) {
+		if ( accessibilityCalculator.getModes().isEmpty() ) {
 			log.error("No transport mode for accessibility calculation is activated! For this reason no accessibilities can be calculated!");
-			log.info("Please activate at least one transport mode by using the corresponding method when initializing the accessibility listener to fix this problem:");
-			log.info("- useFreeSpeedGrid()");
-			log.info("- useCarGrid()");
-			log.info("- useBikeGrid()");
-			log.info("- useWalkGrid()");
-			log.info("- usePtGrid()");
 			return;
 		}
 		
@@ -112,24 +85,15 @@ public final class ZoneBasedAccessibilityControlerListenerV3 implements Shutdown
 		// get the controller and scenario
 		MatsimServices controler = event.getServices();
 		log.info("Computing and writing zone based accessibility measures ..." );
-		log.info(delegate.getMeasuringPoints().getFacilities().values().size() + " measurement points are now processing ...");
 
-		AccessibilityConfigGroup moduleAPCM =
-				ConfigUtils.addOrGetModule(
-						controler.getScenario().getConfig(),
-						AccessibilityConfigGroup.GROUP_NAME,
-						AccessibilityConfigGroup.class);
+		AccessibilityConfigGroup accessibilityConfig = ConfigUtils.addOrGetModule( controler.getScenario().getConfig(), AccessibilityConfigGroup.class);
 
 
-		delegate.computeAccessibilities(controler.getScenario(), moduleAPCM.getTimeOfDay() );
+		accessibilityCalculator.computeAccessibilities(accessibilityConfig.getTimeOfDay(), opportunities);
 	}
 
-	public void setComputingAccessibilityForMode(Modes4Accessibility mode, boolean val) {
-		delegate.setComputingAccessibilityForMode(mode, val);
-	}
-
-	public void addZoneDataExchangeListener(FacilityDataExchangeInterface l) {
-		delegate.addFacilityDataExchangeListener(l);
+	public void addFacilityDataExchangeListener(FacilityDataExchangeInterface l) {
+		accessibilityCalculator.addFacilityDataExchangeListener(l);
 	}
 
 }

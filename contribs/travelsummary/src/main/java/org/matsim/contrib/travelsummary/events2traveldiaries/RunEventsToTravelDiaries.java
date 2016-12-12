@@ -24,7 +24,7 @@ import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.events.EventsManagerImpl;
 import org.matsim.core.events.MatsimEventsReader;
-import org.matsim.core.network.MatsimNetworkReader;
+import org.matsim.core.network.io.MatsimNetworkReader;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.transitSchedule.api.TransitScheduleReader;
 import org.matsim.vehicles.VehicleReaderV1;
@@ -90,7 +90,7 @@ public class RunEventsToTravelDiaries {
         }
         Scenario scenario = ScenarioUtils.createScenario(config);
 
-        new MatsimNetworkReader(scenario.getNetwork()).readFile(config.network().getInputFile());
+        new MatsimNetworkReader(scenario.getNetwork()).parse(config.network().getInputFileURL(config.getContext()));
 
         if (config.transit().isUseTransit() ) {
 
@@ -129,14 +129,15 @@ public class RunEventsToTravelDiaries {
                         "0 (REQUIRED): A config file, specifying the network file, and transit data (if\n" +
                         "              simulating transit).\n\n" +
                         "1 (REQUIRED): An events file.\n\n" +
-                        "2 (OPTIONAL): A prefix or suffix to prepend or append to the beginning or\n" +
+                        "2 (OPTIONAL): An ALPHANUMERIC prefix or suffix to prepend or append to the beginning or\n" +
                         "              end of the output file names. Prefixes have a trailing under-\n" +
                         "              score, suffixes have a leading underscore, e.g. pre_ will\n" +
                         "              produce pre_matsim_table.txt, and _post will produce\n" +
                         "              matsim_table_post.txt. Useful when comparing multiple diaries.\n\n" +
                         "3 (OPTIONAL): An output directory, where the travel diary tables will be\n" +
                         "              written to, otherwise the output directory from the config\n" +
-                        "              is used.\n\n"
+                        "              is used.\n\n" +
+                        "4 (OPTIONAL): A maximum number of events to process (for diagnostics).\n\n"
         );
     }
 }

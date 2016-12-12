@@ -1,6 +1,11 @@
 package org.matsim.core.controler;
 
 
+import java.util.HashSet;
+
+import javax.inject.Inject;
+import javax.inject.Provider;
+
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
@@ -9,18 +14,13 @@ import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.config.groups.GlobalConfigGroup;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.network.algorithms.TransportModeNetworkFilter;
-import org.matsim.core.population.PopulationImpl;
+import org.matsim.core.population.algorithms.AbstractPersonAlgorithm;
+import org.matsim.core.population.algorithms.ParallelPersonAlgorithmRunner;
+import org.matsim.core.population.algorithms.PersonPrepareForSim;
 import org.matsim.core.router.PlanRouter;
 import org.matsim.core.router.TripRouter;
-import org.matsim.core.scenario.MutableScenario;
+import org.matsim.core.scenario.Lockable;
 import org.matsim.facilities.ActivityFacilities;
-import org.matsim.population.algorithms.AbstractPersonAlgorithm;
-import org.matsim.population.algorithms.ParallelPersonAlgorithmRunner;
-import org.matsim.population.algorithms.PersonPrepareForSim;
-
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.util.HashSet;
 
 class PrepareForSimImpl implements PrepareForSim {
 
@@ -46,11 +46,6 @@ class PrepareForSimImpl implements PrepareForSim {
 
 	@Override
 	public void run() {
-		if (scenario instanceof MutableScenario) {
-			((MutableScenario)scenario).setLocked();
-			// see comment in ScenarioImpl. kai, sep'14
-		}
-
 		/*
 		 * Create single-mode network here and hand it over to PersonPrepareForSim. Otherwise, each instance would create its
 		 * own single-mode network. However, this assumes that the main mode is car - which PersonPrepareForSim also does. Should
@@ -76,9 +71,21 @@ class PrepareForSimImpl implements PrepareForSim {
 						return new PersonPrepareForSim(new PlanRouter(tripRouterProvider.get(), activityFacilities), scenario, net);
 					}
 				});
-		if (population instanceof PopulationImpl) {
-			((PopulationImpl) population).setLocked();
+
+		if (scenario instanceof Lockable) {
+			((Lockable)scenario).setLocked();
+			// see comment in ScenarioImpl. kai, sep'14
 		}
+
+		if (population instanceof Lockable) {
+			((Lockable) population).setLocked();
+		}
+		
+		if ( network instanceof Lockable ) {
+			((Lockable) network).setLocked();
+		}
+		
+		// (yyyy means that if someone replaces prepareForSim and does not add the above lines, the containers are not locked.  kai, nov'16)
 
 	}
 }

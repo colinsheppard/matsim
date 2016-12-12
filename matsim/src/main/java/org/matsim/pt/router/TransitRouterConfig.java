@@ -58,7 +58,7 @@ public class TransitRouterConfig implements MatsimParameters {
 	/**
 	 * The distance in meters that agents can walk to get from one stop to
 	 * another stop of a nearby transit line.
-	 * <p/>
+	 * <p></p>
 	 * Is this really needed?  If the marg utl of walk is correctly set, this should come out automagically.
 	 * kai, feb'11
 	 * This value is used to generate the walk connections between stop facilities. If they are used,
@@ -91,6 +91,10 @@ public class TransitRouterConfig implements MatsimParameters {
 
 	private double utilityOfLineSwitch_utl;
 
+	private Double beelineDistanceFactor;
+
+	private final double directWalkFactor ;
+
 	public TransitRouterConfig(final Config config) {
 		this(config.planCalcScore(), config.plansCalcRoute(), config.transitRouter(), config.vspExperimental());
 	}
@@ -101,9 +105,11 @@ public class TransitRouterConfig implements MatsimParameters {
 		pcsConfig.setLocked(); pcrConfig.setLocked() ; trConfig.setLocked() ; vspConfig.setLocked() ;
 		
 		// walk:
-		this.beelineWalkSpeed = pcrConfig.getTeleportedModeSpeeds().get(TransportMode.walk)
-				/ pcrConfig.getModeRoutingParams().get( TransportMode.walk ).getBeelineDistanceFactor() ;
+		this.beelineDistanceFactor = pcrConfig.getModeRoutingParams().get( TransportMode.walk ).getBeelineDistanceFactor();
 
+		this.beelineWalkSpeed = pcrConfig.getTeleportedModeSpeeds().get(TransportMode.walk)
+				/ beelineDistanceFactor ;
+		
 		this.marginalUtilityOfTravelTimeWalk_utl_s = pcsConfig.getModes().get(TransportMode.walk).getMarginalUtilityOfTraveling() /3600.0 - pcsConfig.getPerforming_utils_hr()/3600. ;
 		
 		this.marginalUtilityOfTravelDistanceWalk_utl_m = pcsConfig.getMarginalUtilityOfMoney() * pcsConfig.getModes().get(TransportMode.walk).getMonetaryDistanceRate();
@@ -122,6 +128,7 @@ public class TransitRouterConfig implements MatsimParameters {
 		this.setExtensionRadius(trConfig.getExtensionRadius());
 		this.setBeelineWalkConnectionDistance(trConfig.getMaxBeelineWalkConnectionDistance());
 		this.setAdditionalTransferTime(trConfig.getAdditionalTransferTime());
+		this.directWalkFactor = trConfig.getDirectWalkFactor() ;
 	}
 
 	public void setUtilityOfLineSwitch_utl(final double utilityOfLineSwitch_utl_sec) {
@@ -130,7 +137,7 @@ public class TransitRouterConfig implements MatsimParameters {
 
 	/**
 	 * The additional utility to be added when an agent switches lines.  Normally negative
-	 * <p/>
+	 * <p></p>
 	 * The "_utl" can go as soon as we are confident that there are no more utilities in "Eu".  kai, feb'11
 	 */
 	public double getUtilityOfLineSwitch_utl() {
@@ -226,5 +233,14 @@ public class TransitRouterConfig implements MatsimParameters {
 	public void setAdditionalTransferTime(double additionalTransferTime) {
 		this.additionalTransferTime = additionalTransferTime;
 	}
+
+	public final Double getBeelineDistanceFactor() {
+		return this.beelineDistanceFactor;
+	}
+
+	public double getDirectWalkFactor() {
+		return this.directWalkFactor ;
+	}
+
 
 }
