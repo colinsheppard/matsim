@@ -52,16 +52,14 @@ public abstract class AbstractController {
     private boolean dirtyShutdown = false;
     
     //TODO this should be dropped in favor of injection one tests are converted to Guice
-    public AbstractController(){
-    	this(null,null,null);
-    }
 
     @Inject
-    AbstractController(ControlerListenerManagerImpl controlerListenerManager, IterationStopWatch stopWatch, MatsimServices matsimServices) {
+    public AbstractController(ControlerListenerManager controlerListenerManager, IterationStopWatch stopWatch, MatsimServices matsimServices, OutputDirectoryHierarchy controlerIO) {
         ControlerUtils.initializeOutputLogging();
         log.info("Used Controler-Class: " + this.getClass().getCanonicalName());
-        this.controlerListenerManagerImpl = controlerListenerManager;
+        this.controlerListenerManagerImpl = (ControlerListenerManagerImpl) controlerListenerManager;
         this.stopwatch = stopWatch;
+        this.controlerIO = controlerIO;
     }
 
     private void resetRandomNumbers(long seed, int iteration) {
