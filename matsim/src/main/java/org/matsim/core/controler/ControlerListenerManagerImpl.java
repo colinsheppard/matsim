@@ -25,6 +25,8 @@ import org.matsim.core.controler.events.*;
 import org.matsim.core.controler.listener.*;
 import org.matsim.core.utils.misc.ClassUtils;
 
+import com.google.inject.Inject;
+
 import javax.swing.event.EventListenerList;
 
 /**
@@ -38,6 +40,14 @@ public final class ControlerListenerManagerImpl implements ControlerListenerMana
 
     private MatsimServices controler = null;
 
+    //TODO this should be dropped in favor of injection one tests are converted to Guice
+    public ControlerListenerManagerImpl() {
+	}
+    @Inject
+	public ControlerListenerManagerImpl(MatsimServices controler) {
+		this.controler = controler;
+	}
+    
 	void setControler(MatsimServices controler) {
         this.controler = controler;
     }

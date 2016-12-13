@@ -26,6 +26,8 @@ import org.matsim.core.controler.OutputDirectoryHierarchy.OverwriteFileSetting;
 import org.matsim.core.controler.listener.ControlerListener;
 import org.matsim.core.gbl.MatsimRandom;
 
+import com.google.inject.Inject;
+
 public abstract class AbstractController {
 
     private static Logger log = Logger.getLogger(AbstractController.class);
@@ -48,16 +50,17 @@ public abstract class AbstractController {
     private Integer thisIteration = null;
 
     private boolean dirtyShutdown = false;
-
-    protected AbstractController() {
-        this(new ControlerListenerManagerImpl(), new IterationStopWatch(), null);
+    
+    //TODO this should be dropped in favor of injection one tests are converted to Guice
+    public AbstractController(){
+    	this(null,null,null);
     }
 
+    @Inject
     AbstractController(ControlerListenerManagerImpl controlerListenerManager, IterationStopWatch stopWatch, MatsimServices matsimServices) {
         ControlerUtils.initializeOutputLogging();
         log.info("Used Controler-Class: " + this.getClass().getCanonicalName());
         this.controlerListenerManagerImpl = controlerListenerManager;
-        this.controlerListenerManagerImpl.setControler(matsimServices);
         this.stopwatch = stopWatch;
     }
 

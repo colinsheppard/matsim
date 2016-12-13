@@ -27,6 +27,8 @@ import org.matsim.core.controler.events.ShutdownEvent;
 import org.matsim.core.controler.events.StartupEvent;
 import org.matsim.testcases.MatsimTestCase;
 
+import com.google.inject.Inject;
+
 import java.util.ArrayList;
 import java.util.List;
 
