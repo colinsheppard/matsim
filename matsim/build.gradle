@@ -1,0 +1,48 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+
+group = 'org.matsim'
+version = '0.9.0-SNAPSHOT'
+
+description = """MATSim"""
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+
+
+
+repositories {
+        
+     maven { url "http://download.osgeo.org/webdav/geotools" }
+     maven { url "http://dl.bintray.com/matsim/matsim" }
+     maven { url "http://repo.maven.apache.org/maven2" }
+}
+dependencies {
+    compile(group: 'log4j', name: 'log4j', version:'1.2.15') {
+exclude(module: 'mail')
+exclude(module: 'jms')
+exclude(module: 'jmxtools')
+exclude(module: 'jmxri')
+    }
+    compile group: 'kml', name: 'kml', version:'2.2.0'
+    compile group: 'org.geotools', name: 'gt-main', version:'13.0'
+    compile group: 'org.geotools', name: 'gt-referencing', version:'13.0'
+    compile group: 'org.geotools', name: 'gt-shapefile', version:'13.0'
+    compile group: 'org.jfree', name: 'jfreechart', version:'1.0.19'
+    compile group: 'org.jfree', name: 'jcommon', version:'1.0.23'
+    compile group: 'com.google.inject', name: 'guice', version:'4.1.0'
+    compile group: 'com.google.inject.extensions', name: 'guice-multibindings', version:'4.1.0'
+    compile group: 'net.sf.trove4j', name: 'trove4j', version:'3.0.3'
+    runtime group: 'org.geotools', name: 'gt-epsg-hsql', version:'13.0'
+    testCompile group: 'junit', name: 'junit', version:'4.12'
+    testCompile group: 'org.hamcrest', name: 'hamcrest-library', version:'1.3'
+}
+//packaging tests
+task packageTests(type: Jar) {
+  from sourceSets.test.output
+  classifier = 'tests'
+}
+artifacts.archives packageTests
