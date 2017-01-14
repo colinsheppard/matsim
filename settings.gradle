@@ -1,2 +1,3 @@
 rootProject.name = 'matsim_all'
 include 'matsim'
+include 'examples'
