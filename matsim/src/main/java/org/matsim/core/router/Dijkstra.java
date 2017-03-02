@@ -268,6 +268,7 @@ public class Dijkstra implements LeastCostPathCalculator {
 		 * the memory consumption and increases the performance by another ~10%.
 		 */
 		return new WrappedBinaryMinHeap<>(this.network.getNodes().size());
+		// Don't mess with the initial size above
 	}
 	
 	/**
