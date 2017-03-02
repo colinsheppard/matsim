@@ -6,8 +6,8 @@ version = '0.9.0-SNAPSHOT'
 
 description = """MATSim Examples"""
 
-sourceCompatibility = 1.5
-targetCompatibility = 1.5
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 repositories {
      maven { url "http://repo.maven.apache.org/maven2" }

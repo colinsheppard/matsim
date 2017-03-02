@@ -22,10 +22,10 @@ repositories {
 }
 dependencies {
     compile(group: 'log4j', name: 'log4j', version:'1.2.15') {
-exclude(module: 'mail')
-exclude(module: 'jms')
-exclude(module: 'jmxtools')
-exclude(module: 'jmxri')
+        exclude(module: 'mail')
+        exclude(module: 'jms')
+        exclude(module: 'jmxtools')
+        exclude(module: 'jmxri')
     }
     compile group: 'kml', name: 'kml', version:'2.2.0'
     compile group: 'org.geotools', name: 'gt-shapefile', version:'16.0'

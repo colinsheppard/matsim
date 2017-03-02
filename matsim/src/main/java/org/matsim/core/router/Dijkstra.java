@@ -237,7 +237,9 @@ public class Dijkstra implements LeastCostPathCalculator {
 			double arrivalTime = outData.getTime();
 			
 			// now construct and return the path
-			return constructPath(fromNode, foundToNode, startTime, arrivalTime);			
+			Path path = constructPath(fromNode, foundToNode, startTime, arrivalTime);
+			pendingNodes.reset();
+			return path;
 		}
 	}
 
