@@ -267,8 +267,7 @@ public class Dijkstra implements LeastCostPathCalculator {
 		 * the getArrayIndex() method of the ArrayRoutingNetworkNodes which further reduces
 		 * the memory consumption and increases the performance by another ~10%.
 		 */
-//		return new WrappedBinaryMinHeap<>(this.network.getNodes().size());
-		return new WrappedBinaryMinHeap<>(128);
+		return new WrappedBinaryMinHeap<>(this.network.getNodes().size());
 	}
 	
 	/**
