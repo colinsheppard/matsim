@@ -114,18 +114,18 @@ final class DumpDataAtEndImpl implements DumpDataAtEnd, ShutdownListener {
 		if ( event.isUnexpected() ) {
 			return ;
 		}
-		dumpPlans();
-		dumpNetwork();
-		dumpConfig();
-		dumpFacilities();
-		dumpNetworkChangeEvents();
-
-		dumpTransitSchedule();
-		dumpTransitVehicles();
-		dumpVehicles();
-		dumpHouseholds();
-		dumpLanes();
-		dumpCounts();
+//		dumpPlans();
+//		dumpNetwork();
+//		dumpConfig();
+//		dumpFacilities();
+//		dumpNetworkChangeEvents();
+//
+//		dumpTransitSchedule();
+//		dumpTransitVehicles();
+//		dumpVehicles();
+//		dumpHouseholds();
+//		dumpLanes();
+//		dumpCounts();
 
 		if (!event.isUnexpected() && vspConfig.isWritingOutputEvents()) {
 			dumpOutputEvents();
